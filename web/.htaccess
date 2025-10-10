@@ -1,0 +1,40 @@
+<IfModule mod_rewrite.c>
+
+  RewriteEngine On
+
+  # #To redirect your website to SSL
+  # RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # #To redirect your website to www
+  # RewriteCond %{HTTP_HOST} ^[^.]+\.[^.]+$
+  # RewriteCond %{HTTPS}s ^on(s)|
+  # RewriteRule ^ http%1://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+
+</IfModule>
+
+########### BEGIN AllsWeb ###########
+# Security: Block access to Git and SVN directories
+RewriteRule (^|/)\.(git|svn)(/|$) - [F,L]
+
+# Disable server signature
+ServerSignature Off
+
+# Security: Prevent access to sensitive and backup files
+<FilesMatch "\.(tdata|sdata|addonpk|bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp|tar|tgz|zip|~)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(\.env|\.ini|\.htpasswd|\.htaccess|phpunit\.xml|composer\.(json|lock))$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+########### END AllsWeb ###########

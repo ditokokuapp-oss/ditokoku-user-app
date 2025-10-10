@@ -1,0 +1,118 @@
+{
+  "project_info": {
+    "project_number": "268802509862",
+    "project_id": "ditokokuid-a2ff4",
+    "storage_bucket": "ditokokuid-a2ff4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268802509862:android:406cce70f97e6196adaae7",
+        "android_client_info": {
+          "package_name": "id.ditokoku.app_provider"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAaZMiI4Tb_kNFFIhtq4msd0a9fij3iaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "268802509862-13aljlqib1v7doovjvl7n80csk3j09g6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.userditokoku.myapp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268802509862:android:ba9ac1bba8d57bcaadaae7",
+        "android_client_info": {
+          "package_name": "id.ditokoku.app_store"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAaZMiI4Tb_kNFFIhtq4msd0a9fij3iaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "268802509862-13aljlqib1v7doovjvl7n80csk3j09g6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.userditokoku.myapp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268802509862:android:217c4d9148a38f94adaae7",
+        "android_client_info": {
+          "package_name": "id.ditokoku.app_user"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAaZMiI4Tb_kNFFIhtq4msd0a9fij3iaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "268802509862-v80qm3cqieaepdfj7jmotsphsdkhnqff.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "268802509862-13aljlqib1v7doovjvl7n80csk3j09g6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.userditokoku.myapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
