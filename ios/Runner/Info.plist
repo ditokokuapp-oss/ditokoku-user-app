@@ -21,9 +21,25 @@
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
-	  <key>NSContactsUsageDescription</key>
-    <string>Aplikasi ini membutuhkan akses kontak untuk membantu Anda memilih nomor telepon untuk pembelian pulsa dan paket data.</string>
 	<string>????</string>
+
+	<!-- ✅ Permissions (with bilingual descriptions) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses kamera untuk mengambil foto bukti pengiriman dan profil pengguna. / This app requires camera access to capture delivery and profile photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi memerlukan akses galeri untuk mengunggah foto. / This app needs access to your photo library to upload images.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Aplikasi memerlukan akses mikrofon untuk perekaman suara saat menggunakan fitur tertentu. / This app needs microphone access for voice recording in specific features.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Aplikasi memerlukan akses kontak untuk membantu Anda memilih nomor telepon saat pembelian pulsa dan paket data. / This app needs access to contacts to help select phone numbers for purchases.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi memerlukan akses lokasi saat digunakan untuk menentukan lokasi pengiriman. / This app requires location access while in use to determine delivery locations.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aplikasi memerlukan akses lokasi untuk melacak status pengiriman bahkan saat aplikasi tidak dibuka. / This app requires location access to track deliveries even when not open.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Aplikasi membutuhkan akses lokasi terus menerus untuk pelacakan pengiriman latar belakang. / This app needs continuous location access for background delivery tracking.</string>
+
+	<!-- ✅ Facebook & Google Sign-In -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -44,40 +60,42 @@
 			</array>
 		</dict>
 	</array>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+
 	<key>FacebookAppID</key>
 	<string>380903914182154</string>
 	<key>FacebookClientToken</key>
 	<string>6d874ccc2786e43042d78823eecd5b63</string>
 	<key>FacebookDisplayName</key>
 	<string>ditokoku</string>
+
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>
 		<string>fb-messenger-share-api</string>
+		<string>instagram</string>
+		<string>whatsapp</string>
+		<string>tel</string>
 	</array>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>This app requires access to the camera to upload customer profile picture.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location to manage coverage of restaurant and when add a new address.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires access to the camera to upload customer profile picture and voice.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to the gallery to upload customer profile picture.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- ✅ Background Modes -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
+		<string>location</string>
 	</array>
+
+	<!-- ✅ Launch & Interface -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -91,6 +109,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- ✅ Flutter Embedded Views -->
 	<key>io.flutter.embedded_views_preview</key>
 	<string>YES</string>
 </dict>
