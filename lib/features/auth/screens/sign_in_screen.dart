@@ -96,7 +96,7 @@ class SignInScreenState extends State<SignInScreen> {
                   ) : const SizedBox(),
 
                                 Image.asset(
-                  'assets/image/newlogoditokoku.png',
+                  'assets/image/ditokokualternates.png',
                   width: 125,
                 ),
                   const SizedBox(height: Dimensions.paddingSizeExtremeLarge),

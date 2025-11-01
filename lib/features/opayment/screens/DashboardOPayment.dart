@@ -698,7 +698,7 @@ class _DashboardOPaymentState extends State<DashboardOPayment> {
     }
     
     return Container(
-      width: 98,
+      width: 140,
       height: 25,
       decoration: BoxDecoration(color: const Color(0xFF2F318B), borderRadius: BorderRadius.circular(4)),
       child: Material(
@@ -706,7 +706,7 @@ class _DashboardOPaymentState extends State<DashboardOPayment> {
         child: InkWell(
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DaftarAgenPage())),
           borderRadius: BorderRadius.circular(4),
-          child: const Center(child: Text('Daftar Agen', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500))),
+          child: const Center(child: Text('Daftar Agen Platinum', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500))),
         ),
       ),
     );

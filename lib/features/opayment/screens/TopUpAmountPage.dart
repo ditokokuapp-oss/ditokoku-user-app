@@ -118,7 +118,7 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
         ),
         title: Text(
           widget.isFromAgentRegistration 
-            ? 'Isi Saldo & Daftar Agen'
+            ? 'Isi Saldo & Daftar Agen Platinum'
             : 'Masukkan Nominal',
           style: robotoBold.copyWith(
             fontSize: 18,
@@ -150,7 +150,7 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Anda akan Mengisi saldo Rp. ${_formatCurrency(widget.minTopupAmount!)} untuk pendaftaran agen',
+                          'Anda akan Mengisi saldo Rp. ${_formatCurrency(widget.minTopupAmount!)} untuk pendaftaran agen platinum',
                           style: robotoRegular.copyWith(
                             fontSize: 14,
                             color: Colors.blue[900],
@@ -251,7 +251,7 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
                     
                     Text(
                       widget.isFromAgentRegistration && widget.minTopupAmount != null
-                        ? 'Nominal tetap Rp ${_formatCurrency(widget.minTopupAmount!)} untuk pendaftaran agen'
+                        ? 'Nominal tetap Rp ${_formatCurrency(widget.minTopupAmount!)} untuk pendaftaran agen platinum'
                         : 'Minimal top up Rp 10.000',
                       style: robotoRegular.copyWith(
                         fontSize: 12,
@@ -355,7 +355,7 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
                     )
                   : Text(
                       widget.isFromAgentRegistration
-                        ? 'Isi Saldo & Daftar Agen'
+                        ? 'Isi Saldo & Daftar Agen Platinum'
                         : 'Lanjutkan Pembayaran',
                       style: robotoBold.copyWith(
                         fontSize: 16,
@@ -438,8 +438,15 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
   }
 
   Widget _buildPaymentMethodsList() {
-    // Data metode pembayaran disamakan dengan TopUpPage
+    // Data metode pembayaran dengan QRIS di paling atas
     final List<Map<String, dynamic>> allPaymentMethods = [
+      // E-Wallet (QRIS di paling atas)
+      {
+        'category': 'E-Wallet',
+        'methods': [
+          {'name': 'QRIS', 'code': 'QRIS', 'logo': 'assets/image/qris_logo.png'},
+        ]
+      },
       // Virtual Account
       {
         'category': 'Virtual Account',
@@ -464,13 +471,6 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
           {'name': 'Alfamart', 'code': 'ALFAMART', 'logo': 'assets/image/alfamart_logo.png'},
           {'name': 'Indomaret', 'code': 'INDOMARET', 'logo': 'assets/image/indomaret_logo.png'},
           {'name': 'Alfamidi', 'code': 'ALFAMIDI', 'logo': 'assets/image/alfamidi_logo.png'},
-        ]
-      },
-      // E-Wallet
-      {
-        'category': 'E-Wallet',
-        'methods': [
-          {'name': 'QRIS', 'code': 'QRIS', 'logo': 'assets/image/qris_logo.png'},
         ]
       },
     ];

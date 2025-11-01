@@ -1025,9 +1025,9 @@ Widget _buildProductCard(dynamic product) {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Harga Agen ',
+                        'Harga Agen Platinum ',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.w500,
                           color: Colors.grey,
                         ),
@@ -1035,7 +1035,7 @@ Widget _buildProductCard(dynamic product) {
                       Text(
                         _formatPrice(product['price'] ?? '0'),
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.w500,
                           color: Colors.grey,
                         ),

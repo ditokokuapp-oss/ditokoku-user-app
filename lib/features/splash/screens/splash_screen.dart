@@ -63,8 +63,7 @@ class SplashScreenState extends State<SplashScreen> {
       Get.find<CartController>().getCartDataOnline();
     }
 
-    // ✅ NAVIGATION ENABLED: Aktifkan kembali navigasi dengan delay 3 detik
-    Timer(Duration(seconds: 3), () {
+    Timer(Duration(seconds: 2), () {
       Get.find<SplashController>().getConfigData(notificationBody: widget.body);
     });
   }
@@ -116,7 +115,7 @@ class SplashScreenState extends State<SplashScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.asset(
-                              'assets/image/newlogoditokoku.png',
+                              'assets/image/ditokokualternates.png',
                               width: 151,
                               height: 151,
                               fit: BoxFit.contain,

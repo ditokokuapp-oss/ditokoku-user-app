@@ -279,7 +279,7 @@ class _AgentTopUpWebViewPageState extends State<AgentTopUpWebViewPage> {
     try {
       print('=== Registering agent ===');
       
-      // Get user_id from ProfileController
+      
       final profileController = Get.find<ProfileController>();
       final userId = profileController.userInfoModel?.id;
       
@@ -294,6 +294,7 @@ class _AgentTopUpWebViewPageState extends State<AgentTopUpWebViewPage> {
           'user_id': userId,
           'nama_konter': widget.agentData['nama_konter'],
           'alamat': widget.agentData['alamat'],
+          'kode_referal': widget.agentData['kode_referal'] ?? '',
         }),
       );
 

@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // ✅ Minimal AGP 8.5.1 agar mendukung 16KB page size
+        classpath 'com.android.tools.build:gradle:8.5.1'
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -6,42 +17,51 @@ allprojects {
 }
 
 rootProject.buildDir = '../build'
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
             project.android {
+
+                // ✅ fallback untuk namespace jika belum ada
                 if (namespace == null) {
                     namespace project.group
                 }
 
-
+                // ✅ Gunakan Java 17 untuk kompatibilitas AGP baru
                 compileOptions {
                     sourceCompatibility JavaVersion.VERSION_17
                     targetCompatibility JavaVersion.VERSION_17
                 }
+
+                // ✅ Kotlin target JVM 17
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
                     kotlinOptions {
                         jvmTarget = "17"
                     }
                 }
+
+                // ✅ Pastikan toolchain sesuai
                 java {
                     toolchain {
                         languageVersion = JavaLanguageVersion.of(17)
                     }
                 }
-
-
             }
         }
     }
 }
+
+// Pastikan semua subproject app sudah dievaluasi
 subprojects {
     project.evaluationDependsOn(':app')
 }
 
+// Bersihkan build
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

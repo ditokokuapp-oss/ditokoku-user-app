@@ -46,7 +46,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "id.ditokoku.app_usernew"
         minSdkVersion 23
         targetSdkVersion 35
@@ -54,15 +53,15 @@ android {
         versionName flutterVersionName
         multiDexEnabled true
 
-         ndk {
-    abiFilters "arm64-v8a", "armeabi-v7a"
-}
+     
 
 
     }
 
    
+ ndkVersion "28.0.12433566"
 
+ 
     signingConfigs {
         release {
             keyAlias keystoreProperties['keyAlias']
