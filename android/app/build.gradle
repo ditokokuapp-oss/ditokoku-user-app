@@ -47,7 +47,7 @@ android {
 
     defaultConfig {
         applicationId "id.ditokoku.app_usernew"
-        minSdkVersion 23
+        minSdkVersion 25
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

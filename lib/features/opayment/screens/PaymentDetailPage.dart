@@ -195,8 +195,8 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     if (isAgen) {
       double sisaSetelahTransaksi = walletBalance - productPrice;
       if (sisaSetelahTransaksi < minSaldo) {
-        title = 'Saldo Minimum Agen';
-        message = 'Sebagai agen, Anda harus menyisakan minimal ${_formatPrice(minSaldo.toString())} setelah transaksi.';
+        title = 'Saldo Tidak Cukup';
+        message = 'Saldo Anda tidak mencukupi untuk melakukan transaksi ini.';
         kekurangan = (productPrice + minSaldo) - walletBalance;
       } else {
         title = 'Saldo Tidak Cukup';
@@ -567,9 +567,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                                 ),
                               ),
                               
-                              // Info Min Saldo untuk Agen - hanya tampil jika data sudah load
-                             
-                                const SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               
                               const SizedBox(height: 40),
                             ],

@@ -17,7 +17,6 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _kodeReferalController = TextEditingController();
 
-  bool _isAgreed = false;
   List<dynamic> _snkData = [];
   bool _isLoadingSnk = false;
   String _minTopup = '50000';
@@ -154,160 +153,44 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
     }
   }
 
-  void _showTermsModal() async {
+  void _showFullScreenTermsModal() async {
+    // Fetch SNK data terlebih dahulu
     await _fetchSnkData();
     if (!mounted) return;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Syarat & Ketentuan\nAgen Platinum Opayment',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                        height: 1.3,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    color: Colors.grey[600],
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: _isLoadingSnk
-                  ? const Center(child: CircularProgressIndicator())
-                  : _snkData.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Tidak ada data SNK',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ..._snkData.map((section) {
-                                return _buildSection(
-                                  title: '${section['order']}. ${section['title']}',
-                                  items: List<String>.from(section['items']),
-                                );
-                              }).toList(),
-                              const SizedBox(height: 20),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.blue[200]!),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Dengan mendaftar sebagai Agen Platinum Opayment, Anda dianggap telah menyetujui seluruh syarat dan ketentuan yang berlaku.',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blue[900],
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 30),
-                            ],
-                          ),
-                        ),
-            ),
-          ],
+    // Tampilkan fullscreen modal
+    final bool? agreed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => _FullScreenTermsPage(
+          snkData: _snkData,
+          isLoadingSnk: _isLoadingSnk,
+          minTopup: _minTopup,
         ),
       ),
     );
+
+    // Jika user setuju, lanjut ke halaman top up
+    if (agreed == true) {
+      _proceedToTopUp();
+    }
   }
 
-  Widget _buildSection({required String title, required List<String> items}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 6, right: 8),
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(color: Colors.grey[600], shape: BoxShape.circle),
-                    ),
-                    Expanded(
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.grey[800],
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-        ],
-      ),
-    );
+  void _proceedToTopUp() {
+    Get.to(() => TopUpAmountPage(
+          paymentMethod: '',
+          paymentCode: '',
+          logoPath: '',
+          isFromAgentRegistration: true,
+          minTopupAmount: int.parse(_minTopup),
+          agentData: {
+            'nama_konter': _namaKonterController.text,
+            'alamat': _alamatController.text,
+            'kode_referal': _kodeReferalController.text,
+            'nama_marketing': _namaMarketing,
+          },
+        ));
   }
 
   void _handleSubmit() {
@@ -323,25 +206,8 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
       return;
     }
 
-    if (!_isAgreed) {
-      Get.snackbar('Error', 'Silakan centang persetujuan isi saldo minimal',
-          backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-      return;
-    }
-
-    Get.to(() => TopUpAmountPage(
-          paymentMethod: '',
-          paymentCode: '',
-          logoPath: '',
-          isFromAgentRegistration: true,
-          minTopupAmount: int.parse(_minTopup),
-          agentData: {
-            'nama_konter': _namaKonterController.text,
-            'alamat': _alamatController.text,
-            'kode_referal': _kodeReferalController.text,
-            'nama_marketing': _namaMarketing,
-          },
-        ));
+    // Tampilkan modal S&K fullscreen
+    _showFullScreenTermsModal();
   }
 
   String _formatCurrency(String amount) {
@@ -385,35 +251,6 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
                     const Text('Daftar Agen Platinum',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                     const SizedBox(height: 40),
-
-                    // Kode Referal Input
-                 
-
-                    if (_isCheckingReferal)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8.0, bottom: 8),
-                        child: Row(children: [
-                          SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-                          SizedBox(width: 8),
-                          Text("Memeriksa kode marketing..."),
-                        ]),
-                      )
-                    else if (_namaMarketing != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8.0, bottom: 8),
-                        child: Text(
-                          _namaMarketing == 'not_found'
-                              ? "❌ Kode marketing tidak ditemukan"
-                              : "✅ Ditemukan Marketing: $_namaMarketing",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _namaMarketing == 'not_found' ? Colors.red : Colors.green[700],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
 
                     // Nama Konter
                     Container(
@@ -463,9 +300,10 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-   Container(
+                    // Kode Marketing (moved to bottom)
+                    Container(
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(12),
@@ -491,51 +329,33 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Checkbox
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
-                            value: _isAgreed,
-                            onChanged: (value) => setState(() => _isAgreed = value ?? false),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                            side: BorderSide(color: Colors.grey[400]!, width: 2),
+                    if (_isCheckingReferal)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0, bottom: 8),
+                        child: Row(children: [
+                          SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 8),
+                          Text("Memeriksa kode marketing..."),
+                        ]),
+                      )
+                    else if (_namaMarketing != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0, bottom: 8),
+                        child: Text(
+                          _namaMarketing == 'not_found'
+                              ? "❌ Kode marketing tidak ditemukan"
+                              : "✅ Ditemukan Marketing: $_namaMarketing",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _namaMarketing == 'not_found' ? Colors.red : Colors.green[700],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _isLoadingConfig
-                              ? const Text('Memuat konfigurasi...',
-                                  style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4))
-                              : RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(fontSize: 12, color: Colors.black, height: 1.4),
-                                    children: [
-                                      const TextSpan(text: 'Dengan Mendaftar Agen Platinum, Saya telah '),
-                                      WidgetSpan(
-                                        child: GestureDetector(
-                                          onTap: _showTermsModal,
-                                          child: Text(
-                                            'membaca syarat, ketentuan dan setuju untuk Isi saldo Minimal Rp ${_formatCurrency(_minTopup)}',
-                                            style: TextStyle(
-                                                fontSize: 12,color: Colors.blue[700], fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                      ),
-                                      const TextSpan(text: ' agar terdaftar sebagai agen platinum'),
-                                    ],
-                                  ),
-                                ),
-                        ),
-                      ],
-                    ),
+                      ),
 
                     const SizedBox(height: 40),
 
-                    // Submit
+                    // Submit Button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -552,7 +372,7 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
                                 height: 24,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : const Text('Daftar dan Isi Saldo',
+                            : const Text('Lanjutkan Pendaftaran',
                                 style: TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                       ),
@@ -564,6 +384,287 @@ class _DaftarAgenPageState extends State<DaftarAgenPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Fullscreen Terms & Conditions Page
+class _FullScreenTermsPage extends StatefulWidget {
+  final List<dynamic> snkData;
+  final bool isLoadingSnk;
+  final String minTopup;
+
+  const _FullScreenTermsPage({
+    required this.snkData,
+    required this.isLoadingSnk,
+    required this.minTopup,
+  });
+
+  @override
+  State<_FullScreenTermsPage> createState() => _FullScreenTermsPageState();
+}
+
+class _FullScreenTermsPageState extends State<_FullScreenTermsPage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _hasScrolledToBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      
+      // Check if user has scrolled to bottom (with 50px threshold)
+      if (currentScroll >= maxScroll - 50 && !_hasScrolledToBottom) {
+        setState(() {
+          _hasScrolledToBottom = true;
+        });
+      }
+    }
+  }
+
+  String _formatCurrency(String amount) {
+    final number = int.tryParse(amount) ?? 0;
+    return number.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  }
+
+  Widget _buildSection({required String title, required List<String> items}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 6, right: 8),
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(color: Colors.grey[600], shape: BoxShape.circle),
+                    ),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.grey[800],
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context, false),
+          icon: const Icon(Icons.close, color: Colors.black),
+        ),
+        title: const Text(
+          'Syarat & Ketentuan',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          const Divider(height: 1),
+          Expanded(
+            child: widget.isLoadingSnk
+                ? const Center(child: CircularProgressIndicator())
+                : widget.snkData.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Tidak ada data SNK',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Syarat & Ketentuan\nAgen Platinum Opayment',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                                height: 1.3,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            ...widget.snkData.map((section) {
+                              return _buildSection(
+                                title: '${section['order']}. ${section['title']}',
+                                items: List<String>.from(section['items']),
+                              );
+                            }).toList(),
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Dengan mendaftar sebagai Agen Platinum Opayment, Anda dianggap telah menyetujui seluruh syarat dan ketentuan yang berlaku serta bersedia isi saldo minimal Rp ${_formatCurrency(widget.minTopup)}.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.blue[900],
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                          ],
+                        ),
+                      ),
+          ),
+          // Bottom Button Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Show indicator if not scrolled to bottom
+                  if (!_hasScrolledToBottom)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.arrow_downward, color: Colors.orange[700], size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Scroll ke bawah untuk membaca semua ketentuan',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.orange[900],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _hasScrolledToBottom
+                          ? () {
+                              Navigator.pop(context, true); // Return true = setuju
+                            }
+                          : null, // Disabled if not scrolled to bottom
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _hasScrolledToBottom 
+                            ? const Color(0xFF2F318B) 
+                            : Colors.grey[300],
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                        disabledBackgroundColor: Colors.grey[300],
+                      ),
+                      child: Text(
+                        'Setuju dan Lanjutkan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _hasScrolledToBottom ? Colors.white : Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, false); // Return false = tidak setuju
+                    },
+                    child: const Text(
+                      'Batalkan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
