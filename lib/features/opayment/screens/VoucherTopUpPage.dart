@@ -6,6 +6,7 @@ import 'package:sixam_mart/util/app_constants.dart';
 import 'package:sixam_mart/helper/auth_helper.dart';
 import 'package:sixam_mart/features/profile/controllers/profile_controller.dart';
 import 'package:get/get.dart';
+import 'DaftarAgenPage.dart';
 
 import 'PaymentDetailPage.dart';
 
@@ -33,6 +34,7 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
   final TextEditingController _phoneController = TextEditingController();
   List<dynamic> products = [];
   bool isLoading = false;
+  bool sortByLowestPrice = false;
   
   bool isAgen = false;
   bool isLoadingAgen = true;
@@ -239,7 +241,22 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
   }
 
   Map<String, dynamic> get currentVoucherInfo {
-    return voucherInfo[widget.voucherId] ?? {
+    // Try to match voucherId with voucherInfo keys
+    String voucherKey = widget.voucherId.toLowerCase();
+    
+    // Remove common suffixes like _voucher, _data, numbers
+    voucherKey = voucherKey
+        .replaceAll(RegExp(r'_voucher\d*'), '')
+        .replaceAll(RegExp(r'_data\d*'), '')
+        .replaceAll(RegExp(r'\d+$'), '');
+    
+    // Check if we have info for this voucher
+    if (voucherInfo.containsKey(voucherKey)) {
+      return voucherInfo[voucherKey]!;
+    }
+    
+    // Default fallback
+    return {
       'color': Colors.blue[700],
       'backgroundColor': Color(0xFF1565C0),
       'requiresPhone': false,
@@ -274,49 +291,32 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
       if (response.statusCode == 200) {
         final List<dynamic> allProducts = json.decode(response.body);
         
+        // Get buyer_sku_code prefix from voucherId (tanpa angka di belakang)
+        String skuPrefix = widget.voucherId.toLowerCase();
+        // Remove trailing numbers if any (contoh: spotify_voucher10 -> spotify_voucher)
+        skuPrefix = skuPrefix.replaceAll(RegExp(r'\d+$'), '');
+        
+        print('=== Filtering products with SKU prefix: $skuPrefix ===');
+        
         setState(() {
           products = allProducts.where((product) {
-            String brandName = product['brand_name'].toString().toUpperCase();
-            String voucherNameUpper = widget.voucherName.toUpperCase();
             String buyerSkuCode = product['buyer_sku_code'].toString().toLowerCase();
             
-            // List provider telco yang perlu filter dengan SKU "voc"
-            List<String> telcoProviders = ['TELKOMSEL', 'XL', 'INDOSAT', 'TRI', 'SMARTFREN', 'AXIS'];
+            // Check if buyerSkuCode starts with the prefix
+            bool matches = buyerSkuCode.startsWith(skuPrefix);
             
-            // Cek apakah voucher ini adalah provider telco
-            bool isTelcoProvider = telcoProviders.any((provider) => 
-              voucherNameUpper.contains(provider) || voucherNameUpper == provider
-            );
-            
-            // Special handling untuk nama brand yang berbeda
-            if (voucherNameUpper == 'TRI') {
-              isTelcoProvider = true;
-              // Cek brand dengan "3" atau "TRI"
-              bool brandMatches = brandName == '3' || brandName == 'TRI' || brandName.contains('TRI');
-              if (isTelcoProvider) {
-                return brandMatches && buyerSkuCode.startsWith('voc');
-              }
-              return brandMatches;
+            if (matches) {
+              print('Matched: $buyerSkuCode for prefix: $skuPrefix');
             }
             
-            if (voucherNameUpper == 'BY.U') {
-              return brandName == 'BYU' || brandName == 'BY.U' || brandName.contains('BY');
-            }
-            
-            // Filter berdasarkan brand name
-            bool brandMatches = brandName == voucherNameUpper || 
-                                brandName.contains(voucherNameUpper);
-            
-            // Jika provider telco, tambahkan filter SKU harus dimulai dengan "voc"
-            if (isTelcoProvider) {
-              return brandMatches && buyerSkuCode.startsWith('voc');
-            }
-            
-            // Untuk non-telco, hanya cek brand name
-            return brandMatches;
+            return matches;
           }).toList();
           
-          print('=== Found ${products.length} products for ${widget.voucherName} ===');
+          if (sortByLowestPrice) {
+            _sortProductsByPrice();
+          }
+          
+          print('=== Found ${products.length} products for ${widget.voucherName} (SKU: $skuPrefix) ===');
         });
       }
     } catch (e) {
@@ -331,6 +331,25 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
         isLoading = false;
       });
     }
+  }
+
+  void _sortProductsByPrice() {
+    products.sort((a, b) {
+      double priceA = double.tryParse(isAgen ? (a['price'] ?? '0') : (a['priceTierTwo'] ?? a['price'] ?? '0')) ?? 0;
+      double priceB = double.tryParse(isAgen ? (b['price'] ?? '0') : (b['priceTierTwo'] ?? b['price'] ?? '0')) ?? 0;
+      return priceA.compareTo(priceB);
+    });
+  }
+
+  void _togglePriceFilter() {
+    setState(() {
+      sortByLowestPrice = !sortByLowestPrice;
+      if (sortByLowestPrice) {
+        _sortProductsByPrice();
+      } else {
+        _fetchProducts();
+      }
+    });
   }
 
   String _formatPrice(String price) {
@@ -387,35 +406,37 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  child: Center(
-                    child: Image.network(
-                      widget.logoPath,
-                      width: 101,
-                      height: 101,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          widget.isNetwork ? Icons.sim_card : Icons.card_giftcard,
-                          size: 60,
-                          color: Colors.grey,
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            voucherColor,
+                // Filter Harga Terendah
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: _togglePriceFilter,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Harga Terendah',
+                          style: TextStyle(
+                            color: sortByLowestPrice 
+                              ? const Color(0xFF2F318B) 
+                              : Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300,
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.tune,
+                          size: 16,
+                          color: sortByLowestPrice 
+                            ? const Color(0xFF2F318B) 
+                            : Colors.black,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
                 
                 Align(
                   alignment: Alignment.centerLeft,
@@ -502,14 +523,14 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
           Expanded(
             child: isLoading 
               ? const Center(child: CircularProgressIndicator())
-              : _buildProductGrid(),
+              : _buildProductList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductGrid() {
+  Widget _buildProductList() {
     if (products.isEmpty) {
       return Center(
         child: Column(
@@ -533,14 +554,8 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
       );
     }
 
-    return GridView.builder(
+    return ListView.builder(
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
@@ -583,52 +598,52 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            height: 80, // ✅ Set fixed height 80
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.15),
+                  spreadRadius: 0,
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              border: Border.all(
+                color: const Color(0x332F318B),
+                width: 1,
+              ),
             ),
-          ],
-          border: Border.all(
-            color: const Color(0x662F318B),
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
+                  // Logo Provider
                   Container(
-                    width: 32,
-                    height: 32,
-                    margin: const EdgeInsets.only(right: 8),
+                    width: 40,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 0),
                     child: Image.network(
                       widget.logoPath,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 32,
-                          height: 32,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: voucherColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Icon(
                               widget.isNetwork ? Icons.sim_card : Icons.card_giftcard,
-                              size: 12,
+                              size: 20,
                               color: voucherColor,
                             ),
                           ),
@@ -636,98 +651,177 @@ class _VoucherTopUpPageState extends State<VoucherTopUpPage> {
                       },
                     ),
                   ),
-                  Flexible(
-                    child: Text(
-                      widget.voucherName,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: voucherColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              Text(
-                product['product_name'] ?? '',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              
-              if (nominalPoint.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  nominalPoint,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.orange,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              
-              const SizedBox(height: 0),
-              
-              if (isAgen) ...[
-                Text(
-                  _formatPrice(product['price'] ?? '0'),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: voucherColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ] else ...[
-                Column(
-                  children: [
-                    Text(
-                      _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 0),
-                    Row(
+                  
+                  // Product Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Harga Agen Platinum ',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
-                          ),
-                        ),
                         Text(
-                          _formatPrice(product['price'] ?? '0'),
+                          product['product_name'] ?? '',
                           style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w300,
+                            color: Colors.black,
+                          ),
+                          maxLines: 2, // ✅ Allow 2 lines
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isAgen 
+                            ? _formatPrice(product['price'] ?? '0')
+                            : _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ],
+                  ),
+                  
+                  // Divider
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 3),
+                    color: Colors.grey[300],
+                  ),
+                  
+                  // Poin
+                  if (nominalPoint.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Text(
+                        nominalPoint,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFFB800),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  
+                  // Divider
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.only(left: 3, right: 5),
+                    color: Colors.grey[300],
+                  ),
+                  
+                  // Harga Agen Platinum
+                  if (isAgen)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Text(
+                        'Anda mendapatkan harga\nagen platinum',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Text "Harga Agen Platinum" di kanan
+                          const Text(
+                            'Harga Agen Platinum',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFFAFAFB2),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Harga dan Icon dalam 1 baris
+                          Row(
+                            children: [
+                              Text(
+                                _formatPrice(product['price'] ?? '0'),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFAFAFB2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const DaftarAgenPage(),
+                                    ),
+                                  );
+                                },
+                                child: Image.asset(
+                                  'assets/image/verifiedblue.png',
+                                  width: 18,
+                                  height: 18,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2F318B),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF2F318B).withOpacity(0.3),
+                                            spreadRadius: 1,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
+          
+          // Text info di bawah card
+          if (!isAgen)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8, right: 4),
+              child: Text(
+                '*Klik di icon centang biru untuk daftar agen platinum',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

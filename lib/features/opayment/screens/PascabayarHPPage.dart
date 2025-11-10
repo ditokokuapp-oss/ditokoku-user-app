@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'PascabayarTopUpPage.dart';
 
 class PascabayarHPPage extends StatefulWidget {
@@ -9,31 +11,152 @@ class PascabayarHPPage extends StatefulWidget {
 }
 
 class _PascabayarHPPageState extends State<PascabayarHPPage> {
-  // Daftar provider HP Pascabayar
-  final List<Map<String, dynamic>> hpProviders = [
-    {
-      'name': 'Kartu Halo',
-      'description': 'Bayar tagihan Kartu Halo bulanan',
-      'logoPath': 'https://pbs.twimg.com/profile_images/1410496569355378693/A2kPM86S_400x400.jpg',
-      'iconColor': Color(0xFFD32F2F),
-      'buyerSkuCode': 'postgdrrrz',
-    },
-    {
-      'name': 'Indosat Postpaid',
-      'description': 'Bayar tagihan Indosat bulanan',
-      'logoPath': 'https://im3-img.indosatooredoo.com/dataprod/portalcontent/portal/images/pagemetaimage/638677123279403092.png',
-      'iconColor': Color(0xFFFFB300),
-      'buyerSkuCode': 'indosat_pascabayar',
-    },
-    {
-      'name': 'XL Postpaid',
-      'description': 'Bayar tagihan XL bulanan',
-      'logoPath': 'https://storage.googleapis.com/static-priocms-dev/2021/08/ddasd-3.jpeg',
-      'iconColor': Color(0xFF1565C0),
-      'buyerSkuCode': 'postdaaaax',
-    },
+  List<Map<String, dynamic>> hpProviders = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHPProviders();
+  }
+
+  Future<void> _fetchHPProviders() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 7
+        final filteredData = data.where((item) => item['category_id'] == 7).toList();
+        
+        setState(() {
+          hpProviders = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'iconColor': _parseColor(item['backgroundColor']),
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return const Color(0xFF1565C0); // Default blue color
+    }
     
-  ];
+    try {
+      // Remove # if exists
+      String hexColor = colorString.replaceAll('#', '');
+      
+      // Add FF for full opacity if not present
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      return const Color(0xFF1565C0); // Default blue color
+    }
+  }
+
+  Widget _buildImage(String imagePath, Color iconColor) {
+    // Cek apakah path adalah URL atau local asset
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Jika URL, gunakan Image.network
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                ),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.phone,
+              color: iconColor,
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      // Jika local asset, gunakan Image.asset
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.phone,
+              color: iconColor,
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,16 +184,70 @@ class _PascabayarHPPageState extends State<PascabayarHPPage> {
         ),
         centerTitle: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView.separated(
-          itemCount: hpProviders.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 16),
-          itemBuilder: (context, index) {
-            return _buildProviderCard(hpProviders[index]);
-          },
-        ),
-      ),
+      body: isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            )
+          : errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        errorMessage!,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchHPProviders,
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                )
+              : hpProviders.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inbox,
+                            size: 64,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak ada provider tersedia',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: ListView.separated(
+                        itemCount: hpProviders.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          return _buildProviderCard(hpProviders[index]);
+                        },
+                      ),
+                    ),
     );
   }
 
@@ -111,46 +288,7 @@ class _PascabayarHPPageState extends State<PascabayarHPPage> {
             // Logo container
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                provider['logoPath'],
-                width: 50,
-                height: 50,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: provider['iconColor'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.phone,
-                      color: provider['iconColor'],
-                      size: 24,
-                    ),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          provider['iconColor'],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              child: _buildImage(provider['logoPath'], provider['iconColor']),
             ),
             const SizedBox(width: 16),
             

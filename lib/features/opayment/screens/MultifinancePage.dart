@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'PascabayarTopUpPage.dart';
 
 class MultifinancePage extends StatefulWidget {
@@ -11,243 +13,152 @@ class MultifinancePage extends StatefulWidget {
 class _MultifinancePageState extends State<MultifinancePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> multifinanceProducts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  // Data untuk produk Multifinance
-final List<Map<String, dynamic>> multifinanceProducts = [
-    {
-      'name': 'ACC Finance',
-      'description': 'Astra Credit Companies',
-      'logoPath': 'assets/image/accfinance_logo.jpg',
-      'buyerSkuCode': 'acc_finance',
-    },
-    {
-      'name': 'Adira Finance',
-      'description': 'Pembayaran cicilan Adira',
-      'logoPath': 'assets/image/adirafinance_logo.jpg',
-      'buyerSkuCode': 'adira_finance',
-    },
-    {
-      'name': 'AEON Finance',
-      'description': 'AEON Credit Service',
-      'logoPath': 'assets/image/aeonfinance_logo.png',
-      'buyerSkuCode': 'aeon_finance',
-    },
-    {
-      'name': 'ASTRA Kredit',
-      'description': 'Pembayaran cicilan Astra',
-      'logoPath': 'assets/image/astrafinancial_logo.png',
-      'buyerSkuCode': 'astra_kredit',
-    },
-    {
-      'name': 'BAF',
-      'description': 'Bussan Auto Finance',
-      'logoPath': 'assets/image/baf_logo.png',
-      'buyerSkuCode': 'baf',
-    },
-    {
-      'name': 'BCA Finance',
-      'description': 'Pembayaran cicilan BCA Finance',
-      'logoPath': 'assets/image/bcafinance_logo.jpg',
-      'buyerSkuCode': 'bca_finance',
-    },
-    {
-      'name': 'BFI Finance',
-      'description': 'Pembayaran cicilan BFI',
-      'logoPath': 'assets/image/bfi_logo.png',
-      'buyerSkuCode': 'bfi_finance',
-    },
-    {
-      'name': 'Bima Finance',
-      'description': 'Pembayaran cicilan Bima',
-      'logoPath': 'assets/image/bimafinance_logo.jpeg',
-      'buyerSkuCode': 'bima_finance',
-    },
-    {
-      'name': 'Buana Finance',
-      'description': 'Pembayaran cicilan Buana',
-      'logoPath': 'assets/image/buanafinance_logo.png',
-      'buyerSkuCode': 'buana_finance',
-    },
-    {
-      'name': 'Cappella Multidana Finance',
-      'description': 'Pembayaran cicilan Cappella',
-      'logoPath': 'assets/image/cpl_logo.png',
-      'buyerSkuCode': 'cappella_finance',
-    },
-    {
-      'name': 'Central Sentosa Finance',
-      'description': 'CSF - Pembayaran cicilan',
-      'logoPath': 'assets/image/csfinance_logo.png',
-      'buyerSkuCode': 'csf',
-    },
-    {
-      'name': 'CIMB Niaga Auto Kredit',
-      'description': 'Pembayaran cicilan CIMB Niaga',
-      'logoPath': 'assets/image/cimbfinance_logo.jpeg',
-      'buyerSkuCode': 'cimb_auto',
-    },
-    {
-      'name': 'Clipan Finance',
-      'description': 'Pembayaran cicilan Clipan',
-      'logoPath': 'assets/image/clipanfinance_logo.jpeg',
-      'buyerSkuCode': 'clipan_finance',
-    },
-    {
-      'name': 'Columbia Finance',
-      'description': 'Pembayaran cicilan Columbia',
-      'logoPath': 'assets/image/columbiafinance_logo.png',
-      'buyerSkuCode': 'columbia_finance',
-    },
-    {
-      'name': 'FIF',
-      'description': 'FIFGROUP - Federal International Finance',
-      'logoPath': 'assets/image/fifgroup_finance.png',
-      'buyerSkuCode': 'fif',
-    },
-    {
-      'name': 'Indomobil Finance',
-      'description': 'IFI - Indomobil Finance Indonesia',
-      'logoPath': 'assets/image/indomobil_logo.png',
-      'buyerSkuCode': 'ifi',
-    },
-    {
-      'name': 'ITC Finance',
-      'description': 'Pembayaran cicilan ITC',
-      'logoPath': 'assets/image/itcfinance_logo.png',
-      'buyerSkuCode': 'itc_finance',
-    },
-    {
-      'name': 'KreditPlus',
-      'description': 'Pembayaran cicilan KreditPlus',
-      'logoPath': 'assets/image/kreditplus_logo.png',
-      'buyerSkuCode': 'kreditplus',
-    },
-    {
-      'name': 'Mandala Finance',
-      'description': 'Pembayaran cicilan Mandala',
-      'logoPath': 'assets/image/mandalafinance_logo.jpg',
-      'buyerSkuCode': 'mandala_finance',
-    },
-    {
-      'name': 'Mandiri Tunas Finance',
-      'description': 'MTF - Pembayaran cicilan',
-      'logoPath': 'assets/image/mandiritunas_logo.jpg',
-      'buyerSkuCode': 'mtf',
-    },
-    {
-      'name': 'Mandiri Utama Finance',
-      'description': 'MUF - Pembayaran cicilan',
-      'logoPath': 'assets/image/mandiriutama_logo.jpeg',
-      'buyerSkuCode': 'muf',
-    },
-    {
-      'name': 'Mega Auto Finance',
-      'description': 'MAF - Pembayaran cicilan',
-      'logoPath': 'assets/image/megaauto_logo.jpg',
-      'buyerSkuCode': 'maf',
-    },
-    {
-      'name': 'Mega Central Finance',
-      'description': 'MCF - Pembayaran cicilan',
-      'logoPath': 'assets/image/megacentral_logo.jpg',
-      'buyerSkuCode': 'mcf',
-    },
-    {
-      'name': 'Mega Finance',
-      'description': 'Pembayaran cicilan Mega',
-      'logoPath': 'assets/image/megafinance_logo.png',
-      'buyerSkuCode': 'mega_finance',
-    },
-    {
-      'name': 'MNC Finance',
-      'description': 'Pembayaran cicilan MNC',
-      'logoPath': 'assets/image/mncfinance_logo.png',
-      'buyerSkuCode': 'mnc_finance',
-    },
-    {
-      'name': 'MPM Finance',
-      'description': 'Pembayaran cicilan MPM',
-      'logoPath': 'assets/image/mpmfinance_logo.png',
-      'buyerSkuCode': 'mpm_finance',
-    },
-    {
-      'name': 'NSC Finance',
-      'description': 'Pembayaran cicilan NSC',
-      'logoPath': 'assets/image/nscfinance.png',
-      'buyerSkuCode': 'nsc_finance',
-    },
-    {
-      'name': 'OTO Finance',
-      'description': 'Pembayaran cicilan OTO',
-      'logoPath': 'assets/image/otofinance_logo.jpg',
-      'buyerSkuCode': 'oto_finance',
-    },
-    {
-      'name': 'Permata Finance',
-      'description': 'Pembayaran cicilan Permata',
-      'logoPath': 'assets/image/permatafinance_logo.jpeg',
-      'buyerSkuCode': 'permata_finance',
-    },
-    {
-      'name': 'Pro Mitra Finance',
-      'description': 'Pembayaran cicilan Pro Mitra',
-      'logoPath': 'assets/image/promitra_logo.jpg',
-      'buyerSkuCode': 'pro_mitra',
-    },
-    {
-      'name': 'Radana Finance',
-      'description': 'HD Finance - Pembayaran cicilan',
-      'logoPath': 'assets/image/radanafinance_logo.png',
-      'buyerSkuCode': 'radana_finance',
-    },
-    {
-      'name': 'Smart Finance',
-      'description': 'Pembayaran cicilan Smart',
-      'logoPath': 'assets/image/smartfinance_logo.png',
-      'buyerSkuCode': 'smart_finance',
-    },
-    {
-      'name': 'Suzuki Finance',
-      'description': 'Pembayaran cicilan Suzuki',
-      'logoPath': 'assets/image/suzukifinance_logo.jpg',
-      'buyerSkuCode': 'suzuki_finance',
-    },
-    {
-      'name': 'Toyota Astra Finance',
-      'description': 'TAF - Pembayaran cicilan',
-      'logoPath': 'assets/image/toyotaastrafinance_logo.jpeg',
-      'buyerSkuCode': 'taf',
-    },
-    {
-      'name': 'True Trihama Finance',
-      'description': 'Pembayaran cicilan True Trihama',
-      'logoPath': 'assets/image/truetrihamas_logo.png',
-      'buyerSkuCode': 'true_trihama',
-    },
-    {
-      'name': 'Varia Intra Finance',
-      'description': 'Pembayaran cicilan Varia Intra',
-      'logoPath': 'assets/image/variaintra_logo.jpg',
-      'buyerSkuCode': 'varia_intra',
-    },
-    {
-      'name': 'Woka Finance',
-      'description': 'Pembayaran cicilan Woka',
-      'logoPath': 'assets/image/wokafinance_logo.png',
-      'buyerSkuCode': 'woka_finance',
-    },
-    {
-      'name': 'Wom Finance',
-      'description': 'Pembayaran cicilan Wom',
-      'logoPath': 'assets/image/womfinance_logo.png',
-      'buyerSkuCode': 'wom_finance',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchMultifinanceProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchMultifinanceProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 8
+        final filteredData = data.where((item) => item['category_id'] == 8).toList();
+        
+        setState(() {
+          multifinanceProducts = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'backgroundColor': _parseColor(item['backgroundColor']),
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return Colors.white;
+    }
+    
+    try {
+      // Remove # if exists
+      String hexColor = colorString.replaceAll('#', '');
+      
+      // Add FF for full opacity if not present
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      return Colors.white;
+    }
+  }
+
+  Widget _buildImage(String imagePath) {
+    // Cek apakah path adalah URL atau local asset
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Jika URL, gunakan Image.network
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.account_balance,
+              color: Colors.blue[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      // Jika local asset, gunakan Image.asset
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.account_balance,
+              color: Colors.blue[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
@@ -332,38 +243,70 @@ final List<Map<String, dynamic>> multifinanceProducts = [
           
           // Product List
           Expanded(
-            child: filteredProducts.isEmpty
+            child: isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Multifinance tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: ListView.separated(
-                      itemCount: filteredProducts.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _buildMultifinanceCard(filteredProducts[index]);
-                      },
-                    ),
-                  ),
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchMultifinanceProducts,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredProducts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Multifinance tidak ditemukan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: ListView.separated(
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildMultifinanceCard(filteredProducts[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
@@ -373,7 +316,6 @@ final List<Map<String, dynamic>> multifinanceProducts = [
   Widget _buildMultifinanceCard(Map<String, dynamic> product) {
     return InkWell(
       onTap: () {
-        // Navigate to PascabayarTopUpPage for all multifinance products
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -415,27 +357,7 @@ final List<Map<String, dynamic>> multifinanceProducts = [
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  product['logoPath'],
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.account_balance,
-                        color: Colors.blue[600],
-                        size: 24,
-                      ),
-                    );
-                  },
-                ),
+                child: _buildImage(product['logoPath']),
               ),
             ),
             const SizedBox(width: 16),

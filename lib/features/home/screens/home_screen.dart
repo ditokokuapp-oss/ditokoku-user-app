@@ -418,8 +418,12 @@ class _HomeScreenState extends State<HomeScreen> {
           appBar: ResponsiveHelper.isDesktop(context) ? const WebMenuBar() : null,
           endDrawer: const MenuDrawer(),
           endDrawerEnableOpenDragGesture: false,
-          backgroundColor: Theme.of(context).colorScheme.surface,
+         extendBodyBehindAppBar: true, // ✅ Tambahkan ini di atas body
+backgroundColor: Theme.of(context).colorScheme.surface,
+
+          
           body: isParcel ? const ParcelCategoryScreen() : SafeArea(
+              top: false,
             child: RefreshIndicator(
               onRefresh: () async {
                 await _loadDataWithRetry();
@@ -435,108 +439,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      SliverAppBar(
-                        floating: false,
-                        elevation: 0,
-                        automaticallyImplyLeading: false,
-                        surfaceTintColor: Colors.transparent,
-                        backgroundColor: Colors.transparent,
-                        title: Center(child: Container(
-                          width: Dimensions.webMaxWidth, 
-                          height: Get.find<LocalizationController>().isLtr ? 60 : 70, 
-                          color: Colors.transparent,
-                          child: Row(children: [
-                            (splashController.module != null && splashController.configModel!.module == null && splashController.moduleList != null && splashController.moduleList!.length != 1) ? InkWell(
-                              onTap: () {
-                                splashController.removeModule();
-                                Get.find<StoreController>().resetStoreData();
-                              },
-                              child: Image.asset(Images.moduleIcon, height: 25, width: 25, color: Theme.of(context).textTheme.bodyLarge!.color),
-                            ) : const SizedBox(),
-                            SizedBox(width: (splashController.module != null && splashController.configModel!.module == null && splashController.moduleList != null && splashController.moduleList!.length != 1) ? Dimensions.paddingSizeSmall : 0),
-
-                            Expanded(child: InkWell(
-                              onTap: () => Get.find<LocationController>().navigateToLocationScreen('home'),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: Dimensions.paddingSizeSmall,
-                                  horizontal: ResponsiveHelper.isDesktop(context) ? Dimensions.paddingSizeSmall : 0,
-                                ),
-                                child: GetBuilder<LocationController>(builder: (locationController) {
-                                  final userAddress = AddressHelper.getUserAddressFromSharedPref();
-                                  
-                                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Row(children: [
-                                      Text(
-                                        userAddress != null ? 'Lokasi' : 'Pilih Lokasi',
-                                        style: robotoMedium.copyWith(
-                                          color: Theme.of(context).textTheme.bodyLarge!.color, 
-                                          fontSize: Dimensions.fontSizeDefault
-                                        ),
-                                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (_isLoadingLocation) ...[
-                                        const SizedBox(width: 8),
-                                        const SizedBox(
-                                          width: 12,
-                                          height: 12,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                                          ),
-                                        ),
-                                      ],
-                                    ]),
-                                    Row(children: [
-                                      Flexible(
-                                        child: Text(
-                                          _isLoadingLocation 
-                                              ? "Mencari lokasi..."
-                                              : _formatAddress(userAddress?.address),
-                                          style: robotoRegular.copyWith(
-                                            color: _isLoadingLocation
-                                                ? Colors.blue
-                                                : userAddress != null 
-                                                    ? const Color(0xFF000000)
-                                                    : Colors.grey,
-                                            fontSize: Dimensions.fontSizeSmall,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Icon(Icons.expand_more, color: Theme.of(context).disabledColor, size: 18),
-                                    ]),
-                                  ]);
-                                }),
-                              ),
-                            )),
-                            InkWell(
-                              child: GetBuilder<NotificationController>(builder: (notificationController) {
-                                return Stack(children: [
-                                  Icon(CupertinoIcons.bell, size: 25, color: Theme.of(context).textTheme.bodyLarge!.color),
-                                  notificationController.hasNotification ? Positioned(top: 0, right: 0, child: Container(
-                                    height: 10, width: 10, decoration: BoxDecoration(
-                                    color: Theme.of(context).primaryColor, shape: BoxShape.circle,
-                                    border: Border.all(width: 1, color: Theme.of(context).cardColor),
-                                  ),
-                                  )) : const SizedBox(),
-                                ]);
-                              }),
-                              onTap: () => Get.toNamed(RouteHelper.getNotificationRoute()),
-                            ),
-                          ]),
-                        )),
-                        actions: const [SizedBox()],
-                      ),
-
+                      // Langsung mulai dari Search Bar (tanpa AppBar)
+                      
+                      // Search Bar (untuk non-module & non-taxi screen)
                       !showMobileModule && !isTaxi ? SliverPersistentHeader(
                         pinned: false,
                         delegate: SliverDelegate(callback: (val){}, child: Center(child: Container(
                           height: 50, width: Dimensions.webMaxWidth,
                           color: searchBgShow ? Get.find<ThemeController>().darkTheme ? Theme.of(context).colorScheme.surface : Theme.of(context).cardColor : null,
                           padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
-                          child: isTaxi? Container(color: Theme.of(context).primaryColor): InkWell(
+                          child: InkWell(
                             onTap: () => Get.toNamed(RouteHelper.getSearchRoute()),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
@@ -565,6 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ))),
                       ) : const SliverToBoxAdapter(),
 
+                      // KONTEN UTAMA (Module View atau Module-specific screens)
                       SliverToBoxAdapter(
                         child: Center(child: SizedBox(
                           width: Dimensions.webMaxWidth,
@@ -582,6 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         )),
                       ),
 
+                      // Filter widget (untuk non-module & non-taxi screen)
                       !showMobileModule && !isTaxi ? SliverPersistentHeader(
                         key: _headerKey,
                         pinned: true,
@@ -594,6 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ) : const SliverToBoxAdapter(),
 
+                      // Store list (untuk non-module & non-taxi screen)
                       SliverToBoxAdapter(child: !showMobileModule && !isTaxi ? Center(child: GetBuilder<StoreController>(builder: (storeController) {
                         return Padding(
                           padding: EdgeInsets.only(bottom: ResponsiveHelper.isDesktop(context) ? 0 : 100),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'PascabayarTopUpPage.dart';
 
 class PajakLayananPage extends StatefulWidget {
@@ -11,47 +13,160 @@ class PajakLayananPage extends StatefulWidget {
 class _PajakLayananPageState extends State<PajakLayananPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> pajakLayananProducts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  // Data untuk produk Pajak & Layanan Publik
-  final List<Map<String, dynamic>> pajakLayananProducts = [
-    {
-      'name': 'PBB',
-      'description': 'Pajak Bumi & Bangunan',
-      'logoPath': 'assets/image/pbb_logo.png',
-      'buyerSkuCode': 'pbb',
-      'iconColor': Colors.green[700],
-      'icon': Icons.home_work,
-    },
-    {
-      'name': 'Pajak Daerah Lainnya',
-      'description': 'PDL - Pembayaran pajak daerah',
-      'logoPath': 'assets/image/pdl_logo.jpeg',
-      'buyerSkuCode': 'pdl',
-      'iconColor': Colors.orange[700],
-      'icon': Icons.location_city,
-    },
-    {
-      'name': 'SAMSAT',
-      'description': 'Pajak kendaraan bermotor',
-      'logoPath': 'assets/image/samsat_logo.jpg',
-      'buyerSkuCode': 'samsat',
-      'iconColor': Colors.blue[800],
-      'icon': Icons.directions_car,
-    },
-    {
-      'name': 'Gas Negara',
-      'description': 'PGN - Pembayaran tagihan gas',
-      'logoPath': 'assets/image/pgn_logo.png',
-      'buyerSkuCode': 'pgn',
-      'iconColor': Colors.red[700],
-      'icon': Icons.gas_meter,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchPajakLayananProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchPajakLayananProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 10
+        final filteredData = data.where((item) => item['category_id'] == 10).toList();
+        
+        setState(() {
+          pajakLayananProducts = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'iconColor': _parseColor(item['backgroundColor']),
+              'icon': _getIcon(item['name']),
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return Colors.blue[700]!;
+    }
+    
+    try {
+      String hexColor = colorString.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      return Colors.blue[700]!;
+    }
+  }
+
+  IconData _getIcon(String name) {
+    final nameLower = name.toLowerCase();
+    if (nameLower.contains('pbb') || nameLower.contains('bumi')) {
+      return Icons.home_work;
+    } else if (nameLower.contains('samsat') || nameLower.contains('kendaraan')) {
+      return Icons.directions_car;
+    } else if (nameLower.contains('gas') || nameLower.contains('pgn')) {
+      return Icons.gas_meter;
+    } else if (nameLower.contains('daerah') || nameLower.contains('pdl')) {
+      return Icons.location_city;
+    }
+    return Icons.account_balance;
+  }
+
+  Widget _buildImage(String imagePath, Color iconColor, IconData icon) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
@@ -136,38 +251,70 @@ class _PajakLayananPageState extends State<PajakLayananPage> {
           
           // Product List
           Expanded(
-            child: filteredProducts.isEmpty
+            child: isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Layanan tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: ListView.separated(
-                      itemCount: filteredProducts.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _buildPajakLayananCard(filteredProducts[index]);
-                      },
-                    ),
-                  ),
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchPajakLayananProducts,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredProducts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Layanan tidak ditemukan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: ListView.separated(
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildPajakLayananCard(filteredProducts[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
@@ -177,7 +324,6 @@ class _PajakLayananPageState extends State<PajakLayananPage> {
   Widget _buildPajakLayananCard(Map<String, dynamic> product) {
     return InkWell(
       onTap: () {
-        // Navigate to PascabayarTopUpPage for all pajak & layanan products
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -219,26 +365,10 @@ class _PajakLayananPageState extends State<PajakLayananPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
+                child: _buildImage(
                   product['logoPath'],
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        product['icon'],
-                        color: product['iconColor'],
-                        size: 24,
-                      ),
-                    );
-                  },
+                  product['iconColor'],
+                  product['icon'],
                 ),
               ),
             ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'PascabayarTopUpPage.dart';
 
 class InternetTVPage extends StatefulWidget {
@@ -11,117 +13,65 @@ class InternetTVPage extends StatefulWidget {
 class _InternetTVPageState extends State<InternetTVPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> internetTVProducts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  // Data untuk produk Internet & TV Kabel
-  final List<Map<String, dynamic>> internetTVProducts = [
-    {
-      'name': 'IndiHome',
-      'description': 'Speedy & IndiHome Internet',
-      'logoPath': 'assets/image/indihome_logo.png',
-      'buyerSkuCode': 'indihome',
-    },
-    {
-      'name': 'Biznet Home',
-      'description': 'Bayar tagihan Biznet Home',
-      'logoPath': 'assets/image/biznethome_logo.png',
-      'buyerSkuCode': 'biznethome',
-    },
-    {
-      'name': 'First Media',
-      'description': 'First Media Internet',
-      'logoPath': 'assets/image/firstmedia_logo.png',
-      'buyerSkuCode': 'firstmedia_internet',
-    },
-    {
-      'name': 'CBN Fiber',
-      'description': 'Bayar tagihan CBN Fiber',
-      'logoPath': 'assets/image/cbn_logo.jpg',
-      'buyerSkuCode': 'cbnfiber',
-    },
-    {
-      'name': 'XL Home',
-      'description': 'Bayar tagihan XL Home',
-      'logoPath': 'assets/image/xlhome_logo.png',
-      'buyerSkuCode': 'xlhome',
-    },
-    {
-      'name': 'MyRepublic',
-      'description': 'Bayar tagihan MyRepublic',
-      'logoPath': 'assets/image/myrepublic_logo.png',
-      'buyerSkuCode': 'myrepublic',
-    },
-    {
-      'name': 'ICONNET',
-      'description': 'PLN Icon Plus Internet',
-      'logoPath': 'assets/image/iconnet_logo.png',
-      'buyerSkuCode': 'iconnet',
-    },
-    {
-      'name': 'K-Vision',
-      'description': 'K-Vision & GOL TV',
-      'logoPath': 'assets/image/kvision_logo.png',
-      'buyerSkuCode': 'kvision',
-    },
-    {
-      'name': 'Nex Parabola',
-      'description': 'Bayar tagihan Nex Parabola',
-      'logoPath': 'assets/image/nexparabola_logo.png',
-      'buyerSkuCode': 'nexparabola',
-    },
-    {
-      'name': 'Matrix',
-      'description': 'Matrix TV Voucher',
-      'logoPath': 'assets/image/matrix_logo.png',
-      'buyerSkuCode': 'matrix',
-    },
-    {
-      'name': 'Tanaka',
-      'description': 'Tanaka TV Voucher',
-      'logoPath': 'assets/image/tanaka_logo.png',
-      'buyerSkuCode': 'tanaka',
-    },
-    {
-      'name': 'TransVision',
-      'description': 'TransVision Voucher',
-      'logoPath': 'assets/image/transvision_logo.png',
-      'buyerSkuCode': 'transvision_voucher',
-    },
-    {
-      'name': 'Kawan K-Vision',
-      'description': 'Kawan K-Vision TV',
-      'logoPath': 'assets/image/kawankvision_logo.jpeg',
-      'buyerSkuCode': 'kawankvision',
-    },
-    {
-      'name': 'Jawara Vision',
-      'description': 'Bayar tagihan Jawara Vision',
-      'logoPath': 'assets/image/jawaravision_logo.jpeg',
-      'buyerSkuCode': 'jawaravision',
-    },
-    {
-      'name': 'First Media TV',
-      'description': 'First Media TV Kabel',
-      'logoPath': 'assets/image/firstmedia_logo.png',
-      'buyerSkuCode': 'firstmedia_tv',
-    },
-    {
-      'name': 'Telkomvision',
-      'description': 'Telkomvision / Transvision',
-      'logoPath': 'assets/image/telkomvision_logo.png',
-      'buyerSkuCode': 'telkomvision',
-    },
-    {
-      'name': 'K-Vision Pascabayar',
-      'description': 'K-Vision Pascabayar',
-      'logoPath': 'assets/image/jawaravision_logo.jpeg',
-      'buyerSkuCode': 'kvision_pascabayar',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchInternetTVProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchInternetTVProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 3
+        final filteredData = data.where((item) => item['category_id'] == 3).toList();
+        
+        setState(() {
+          internetTVProducts = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'backgroundColor': item['backgroundColor'],
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
@@ -134,6 +84,73 @@ class _InternetTVPageState extends State<InternetTVPage> {
       final query = _searchQuery.toLowerCase();
       return name.contains(query) || description.contains(query);
     }).toList();
+  }
+
+  Widget _buildImage(String imagePath) {
+    // Cek apakah path adalah URL atau local asset
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Jika URL, gunakan Image.network
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.wifi,
+              color: Colors.grey[400],
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      // Jika local asset, gunakan Image.asset
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.wifi,
+              color: Colors.grey[400],
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -206,38 +223,70 @@ class _InternetTVPageState extends State<InternetTVPage> {
 
           // Product List
           Expanded(
-            child: filteredProducts.isEmpty
+            child: isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Provider tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: ListView.separated(
-                      itemCount: filteredProducts.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _buildInternetTVCard(filteredProducts[index]);
-                      },
-                    ),
-                  ),
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchInternetTVProducts,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredProducts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Provider tidak ditemukan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: ListView.separated(
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildInternetTVCard(filteredProducts[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
@@ -280,27 +329,7 @@ class _InternetTVPageState extends State<InternetTVPage> {
             // Logo container
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                product['logoPath'],
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.wifi,
-                      color: Colors.grey[400],
-                      size: 24,
-                    ),
-                  );
-                },
-              ),
+              child: _buildImage(product['logoPath']),
             ),
             const SizedBox(width: 16),
             

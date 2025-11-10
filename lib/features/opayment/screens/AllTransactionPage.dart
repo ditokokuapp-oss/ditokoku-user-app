@@ -931,611 +931,513 @@ class _AllTransactionPageState extends State<AllTransactionPage> {
                     ),
                 ],
               ),
-            ),
-          
+              ),
           Expanded(
-            child: _buildTransactionList(filteredList),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionList(List<PPOBTransactionModel> filteredList) {
-    if (!AuthHelper.isLoggedIn()) {
-      return _buildEmptyState(
-        icon: Icons.login,
-        title: 'Silakan Login',
-        subtitle: 'Login untuk melihat riwayat transaksi',
-        showButton: true,
-        buttonText: 'Login',
-        onButtonPressed: () {},
-      );
-    }
-
-    if (isLoading && transactions.isEmpty) {
-      return ListView.builder(
-        itemCount: 10,
-        itemBuilder: (context, index) => _buildTransactionShimmer(),
-      );
-    }
-
-    if (errorMessage != null && transactions.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.error_outline,
-        title: 'Oops!',
-        subtitle: errorMessage!,
-        showButton: true,
-        buttonText: 'Coba Lagi',
-        onButtonPressed: () => _loadTransactions(refresh: true),
-      );
-    }
-
-    if (filteredList.isEmpty && transactions.isNotEmpty) {
-      return _buildEmptyState(
-        icon: Icons.search_off,
-        title: 'Tidak Ada Hasil',
-        subtitle: 'Tidak ditemukan transaksi sesuai filter',
-        showButton: true,
-        buttonText: 'Reset Filter',
-        onButtonPressed: () {
-          setState(() {
-            selectedStatus = 'Semua';
-            selectedCategory = 'Semua';
-            searchQuery = '';
-            _searchController.clear();
-          });
-        },
-      );
-    }
-
-    if (filteredList.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.receipt_long_outlined,
-        title: 'Belum Ada Transaksi',
-        subtitle: 'Transaksi Anda akan muncul di sini',
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => _loadTransactions(refresh: true),
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: filteredList.length + (isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == filteredList.length) {
-            return _buildLoadingMore();
-          }
-          
-          return _buildTransactionItem(filteredList[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool showButton = false,
-    String? buttonText,
-    VoidCallback? onButtonPressed,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 80,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (showButton && buttonText != null) ...[
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: onButtonPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(buttonText),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingMore() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      alignment: Alignment.center,
-      child: const CircularProgressIndicator(),
-    );
-  }
-
-  Widget _buildTransactionShimmer() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Shimmer(
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Shimmer(
-                  child: Container(
-                    height: 16,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Shimmer(
-                  child: Container(
-                    height: 14,
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Shimmer(
-                  child: Container(
-                    height: 20,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Shimmer(
-            child: Container(
-              height: 16,
-              width: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(PPOBTransactionModel transaction) {
-    final isPending = transaction.status.toLowerCase() == 'pending';
-    final isRefreshing = _refreshingTransactions.contains(transaction.refId);
-
-    IconData getTransactionIcon(String category) {
-      switch (category.toLowerCase()) {
-        case 'pulsa':
-          return Icons.smartphone;
-        case 'data':
-          return Icons.wifi;
-        case 'pln':
-        case 'listrik':
-          return Icons.bolt;
-        case 'game':
-          return Icons.sports_esports;
-        default:
-          return Icons.receipt;
-      }
-    }
-
-    Color getStatusColor(String status) {
-      switch (status.toLowerCase()) {
-        case 'success':
-        case 'sukses':
-          return Colors.green;
-        case 'pending':
-          return Colors.orange;
-        case 'failed':
-        case 'gagal':
-          return Colors.red;
-        default:
-          return Colors.grey;
-      }
-    }
-
-    String formatDate(DateTime date) {
-      final adjustedDate = date.add(const Duration(hours: 9));
-      
-      final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      
-      return '${adjustedDate.day} ${months[adjustedDate.month - 1]} ${adjustedDate.year} ${adjustedDate.hour.toString().padLeft(2, '0')}:${adjustedDate.minute.toString().padLeft(2, '0')}';
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: isPending ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _showTransactionDetail(transaction),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: getStatusColor(transaction.status),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            getTransactionIcon(transaction.categoryName),
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        if (isPending)
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: const Icon(
-                                Icons.access_time,
-                                color: Colors.white,
-                                size: 8,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  transaction.productName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              if (isPending && _autoRefreshTimer != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'AUTO',
-                                    style: TextStyle(
-                                      color: Colors.orange,
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.bold,
+            child: isLoading
+                ? _buildShimmerLoading()
+                : errorMessage != null
+                    ? _buildErrorState()
+                    : filteredList.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: () => _loadTransactions(refresh: true),
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: filteredList.length + (isLoadingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == filteredList.length) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(),
                                     ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            transaction.customerNo,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                                  );
+                                }
+                                return _buildTransactionCard(filteredList[index]);
+                              },
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            formatDate(transaction.createdAt),
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Shimmer(
+          duration: const Duration(seconds: 2),
+          color: Colors.white,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 150,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        FutureBuilder<String>(
-                          future: _getCorrectPrice(transaction),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              );
-                            }
-                            
-                            return Text(
-                              snapshot.data ?? PriceConverter.convertPrice(transaction.price),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: getStatusColor(transaction.status).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                transaction.status.toUpperCase(),
-                                style: TextStyle(
-                                  color: getStatusColor(transaction.status),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (isPending) ...[
-                              const SizedBox(width: 4),
-                              GestureDetector(
-                                onTap: isRefreshing ? null : () => _refreshSingleTransaction(transaction),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: isRefreshing
-                                      ? const SizedBox(
-                                          width: 12,
-                                          height: 12,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.refresh,
-                                          color: Colors.blue,
-                                          size: 12,
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 100,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ],
-                ),
-                if (transaction.message.isNotEmpty && transaction.message != transaction.productName) ...[
+                  ),
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(8),
+                    height: 12,
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      transaction.message,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            errorMessage ?? 'Terjadi kesalahan',
+            style: TextStyle(color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _loadTransactions(refresh: true),
+            child: const Text('Coba Lagi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada transaksi',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Transaksi Anda akan muncul di sini',
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionCard(PPOBTransactionModel transaction) {
+    final isRefreshing = _refreshingTransactions.contains(transaction.refId);
+    final isPending = transaction.status.toLowerCase() == 'pending';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () => _showTransactionDetail(transaction),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          transaction.productName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          transaction.categoryName,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatusChip(transaction.status),
+                ],
+              ),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No. Pelanggan',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        transaction.customerNo,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Total',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        PriceConverter.convertPrice(transaction.price),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.blue[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDate(transaction.createdAt),
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (isPending)
+                    TextButton.icon(
+                      onPressed: isRefreshing
+                          ? null
+                          : () => _refreshSingleTransaction(transaction),
+                      icon: isRefreshing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.refresh, size: 16),
+                      label: Text(
+                        isRefreshing ? 'Mengecek...' : 'Cek Status',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  void _showFilterDialog() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  Widget _buildStatusChip(String status) {
+    Color backgroundColor;
+    Color textColor;
+    IconData icon;
+
+    switch (status.toLowerCase()) {
+      case 'success':
+      case 'sukses':
+        backgroundColor = Colors.green[100]!;
+        textColor = Colors.green[700]!;
+        icon = Icons.check_circle;
+        break;
+      case 'pending':
+        backgroundColor = Colors.orange[100]!;
+        textColor = Colors.orange[700]!;
+        icon = Icons.schedule;
+        break;
+      case 'failed':
+      case 'gagal':
+        backgroundColor = Colors.red[100]!;
+        textColor = Colors.red[700]!;
+        icon = Icons.cancel;
+        break;
+      default:
+        backgroundColor = Colors.grey[100]!;
+        textColor = Colors.grey[700]!;
+        icon = Icons.help_outline;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Filter Transaksi'),
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Filter Transaksi',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  const Text(
                     'Status',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: statusOptions.map((status) {
-                      return FilterChip(
+                      return ChoiceChip(
                         label: Text(status),
                         selected: selectedStatus == status,
                         onSelected: (selected) {
-                          setModalState(() {
+                          setDialogState(() {
                             selectedStatus = status;
                           });
                         },
                       );
                     }).toList(),
                   ),
-                  
                   const SizedBox(height: 16),
-                  
                   const Text(
                     'Kategori',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: categoryOptions.map((category) {
-                      return FilterChip(
+                      return ChoiceChip(
                         label: Text(category),
                         selected: selectedCategory == category,
                         onSelected: (selected) {
-                          setModalState(() {
+                          setDialogState(() {
                             selectedCategory = category;
                           });
                         },
                       );
                     }).toList(),
                   ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setModalState(() {
-                              selectedStatus = 'Semua';
-                              selectedCategory = 'Semua';
-                            });
-                            setState(() {
-                              selectedStatus = 'Semua';
-                              selectedCategory = 'Semua';
-                            });
-                          },
-                          child: const Text('Reset'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {});
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Terapkan'),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedStatus = 'Semua';
+                      selectedCategory = 'Semua';
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Reset'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {});
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Terapkan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showTransactionDetail(PPOBTransactionModel transaction) async {
+    final isPLN = _isPLNProduct(transaction);
+    final isPLNPascabayarResult = isPLN
+        ? await _isPLNPascabayar(transaction.buyerSkuCode ?? '')
+        : false;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Detail Transaksi',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildDetailRow('Produk', transaction.productName),
+                    _buildDetailRow('Kategori', transaction.categoryName),
+                    _buildDetailRow('Brand', transaction.brandName),
+                    _buildDetailRow('No. Pelanggan', transaction.customerNo),
+                    _buildDetailRow(
+                      'Harga',
+                      PriceConverter.convertPrice(transaction.price),
+                    ),
+                    _buildDetailRow('Status', transaction.status.toUpperCase()),
+                    _buildDetailRow('Ref ID', transaction.refId),
+                    if (transaction.message.isNotEmpty)
+                      _buildDetailRow('Pesan', transaction.message),
+                    if (transaction.sn.isNotEmpty && !isPLNPascabayarResult)
+                      _buildDetailRow(
+                        isPLN ? 'Token Listrik' : 'Serial Number',
+                        isPLN
+                            ? _extractPLNToken(transaction.sn)
+                            : transaction.sn,
+                        copyable: true,
+                      ),
+                    _buildDetailRow(
+                      'Tanggal',
+                      _formatDate(transaction.createdAt),
+                    ),
+                    const SizedBox(height: 24),
+                    if (transaction.status.toLowerCase() == 'pending')
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _refreshSingleTransaction(transaction);
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Cek Status Terbaru'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -1544,316 +1446,45 @@ class _AllTransactionPageState extends State<AllTransactionPage> {
     );
   }
 
-  Future<String> _getCorrectPrice(PPOBTransactionModel transaction) async {
-    try {
-      final productData = await _getProductData(transaction.buyerSkuCode ?? '');
-      
-      if (productData == null) {
-        return PriceConverter.convertPrice(transaction.price);
-      }
-
-      String typeName = productData['type_name']?.toString().toLowerCase() ?? '';
-      
-      if (typeName == 'pascabayar') {
-        double price = double.tryParse(productData['price']?.toString() ?? '0') ?? transaction.price;
-        return PriceConverter.convertPrice(price);
-      }
-      
-      if (isAgen) {
-        double price = double.tryParse(productData['price']?.toString() ?? '0') ?? transaction.price;
-        return PriceConverter.convertPrice(price);
-      } else {
-        double price = double.tryParse(
-          productData['priceTierTwo']?.toString() ?? 
-          productData['price']?.toString() ?? '0'
-        ) ?? transaction.price;
-        return PriceConverter.convertPrice(price);
-      }
-    } catch (e) {
-      print('Error getting correct price: $e');
-      return PriceConverter.convertPrice(transaction.price);
-    }
-  }
-
-  void _showTransactionDetail(PPOBTransactionModel transaction) async {
-    Color getStatusColor(String status) {
-      switch (status.toLowerCase()) {
-        case 'success':
-        case 'sukses':
-          return Colors.green;
-        case 'pending':
-          return Colors.orange;
-        case 'failed':
-        case 'gagal':
-          return Colors.red;
-        default:
-          return Colors.grey;
-      }
-    }
-
-    final isPLN = _isPLNProduct(transaction);
-    final isPascabayar = isPLN ? await _isPLNPascabayar(transaction.buyerSkuCode ?? '') : false;
-    final showPLNToken = isPLN && !isPascabayar && transaction.status.toLowerCase() == 'sukses';
-    final plnToken = showPLNToken ? _extractPLNToken(transaction.sn) : '';
-    
-    final correctPrice = await _getCorrectPrice(transaction);
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          maxChildSize: 0.9,
-          minChildSize: 0.5,
-          expand: false,
-          builder: (context, scrollController) {
-            bool isCopied = false;
-            
-            return StatefulBuilder(
-              builder: (BuildContext context, StateSetter setModalState) {
-                return Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Detail Transaksi',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              if (transaction.status.toLowerCase() == 'pending')
-                                IconButton(
-                                  onPressed: () => _refreshSingleTransaction(transaction),
-                                  icon: Icon(
-                                    Icons.refresh,
-                                    color: Colors.blue[600],
-                                  ),
-                                  tooltip: 'Refresh Status',
-                                ),
-                              IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      Expanded(
-                        child: SingleChildScrollView(
-                          controller: scrollController,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: getStatusColor(transaction.status).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  transaction.status.toUpperCase(),
-                                  style: TextStyle(
-                                    color: getStatusColor(transaction.status),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              
-                              _buildDetailRow('ID Transaksi', transaction.refId),
-                              _buildDetailRow('Produk', transaction.productName),
-                              _buildDetailRow('Kategori', transaction.categoryName),
-                              _buildDetailRow('Brand', transaction.brandName),
-                              _buildDetailRow('Nomor Pelanggan', transaction.customerNo),
-                              _buildDetailRow('Harga', correctPrice),
-                              _buildDetailRow('Waktu Transaksi', 
-                                () {
-                                  final adjustedDate = transaction.createdAt.add(const Duration(hours: 9));
-                                  return '${adjustedDate.day}/${adjustedDate.month}/${adjustedDate.year} ${adjustedDate.hour.toString().padLeft(2, '0')}:${adjustedDate.minute.toString().padLeft(2, '0')}';
-                                }()),
-                              
-                              if (transaction.sn.isNotEmpty && !showPLNToken) 
-                                _buildDetailRow('Serial Number', transaction.sn),
-                              
-                              if (transaction.message.isNotEmpty)
-                                _buildDetailRow('Pesan', transaction.message),
-                              
-                              if (showPLNToken && plnToken.isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF8E1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFFFA726)),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.electric_bolt,
-                                            color: Color(0xFFFFA726),
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Token PLN',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF000000),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              plnToken,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF000000),
-                                                letterSpacing: 1.5,
-                                              ),
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              Clipboard.setData(ClipboardData(text: plnToken));
-                                              
-                                              setModalState(() {
-                                                isCopied = true;
-                                              });
-                                              
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Row(
-                                                    children: const [
-                                                      Icon(
-                                                        Icons.check_circle,
-                                                        color: Colors.white,
-                                                        size: 20,
-                                                      ),
-                                                      SizedBox(width: 12),
-                                                      Text('Token PLN berhasil disalin'),
-                                                    ],
-                                                  ),
-                                                  duration: const Duration(seconds: 2),
-                                                  backgroundColor: Colors.green,
-                                                  behavior: SnackBarBehavior.floating,
-                                                  margin: const EdgeInsets.all(16),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                ),
-                                              );
-                                              
-                                              Future.delayed(const Duration(milliseconds: 500), () {
-                                                if (context.mounted) {
-                                                  setModalState(() {
-                                                    isCopied = false;
-                                                  });
-                                                }
-                                              });
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(milliseconds: 200),
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: isCopied 
-                                                    ? Colors.green 
-                                                    : const Color(0xFFFFA726),
-                                                borderRadius: BorderRadius.circular(6),
-                                                boxShadow: isCopied
-                                                    ? [
-                                                        BoxShadow(
-                                                          color: Colors.green.withOpacity(0.4),
-                                                          spreadRadius: 2,
-                                                          blurRadius: 8,
-                                                          offset: const Offset(0, 2),
-                                                        ),
-                                                      ]
-                                                    : [],
-                                              ),
-                                              child: AnimatedSwitcher(
-                                                duration: const Duration(milliseconds: 200),
-                                                child: Icon(
-                                                  isCopied ? Icons.check : Icons.copy,
-                                                  key: ValueKey<bool>(isCopied),
-                                                  color: Colors.white,
-                                                  size: 16,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+  Widget _buildDetailRow(String label, String value, {bool copyable = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
               color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (copyable)
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 20),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: value));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Disalin ke clipboard'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),

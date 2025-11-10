@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'EMoneyTopUpPage.dart';
 
 class UangElektronikPage extends StatefulWidget {
@@ -11,100 +13,152 @@ class UangElektronikPage extends StatefulWidget {
 class _UangElektronikPageState extends State<UangElektronikPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> eMoneyProducts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  // Data untuk produk uang elektronik
-  final List<Map<String, dynamic>> eMoneyProducts = [
-    {
-      'name': 'OVO',
-      'logoPath': 'assets/image/ovo_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'DANA',
-      'logoPath': 'assets/image/dana_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'GoPay',
-      'logoPath': 'assets/image/gopay_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'ShopeePay',
-      'logoPath': 'assets/image/shopeepay_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'LinkAja',
-      'logoPath': 'assets/image/linkaja_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'i.Saku',
-      'logoPath': 'assets/image/isaku_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'DOKU',
-      'logoPath': 'assets/image/doku_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'KasPro',
-      'logoPath': 'assets/image/kaspro_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Sakuku',
-      'logoPath': 'assets/image/sakuku_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'AstraPay',
-      'logoPath': 'assets/image/astrapay_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Gojek Driver',
-      'logoPath': 'assets/image/gojek_driver_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Grab Driver',
-      'logoPath': 'assets/image/grab_customer_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'ShopeeFood Driver',
-      'logoPath': 'assets/image/shopeefood_driver_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Maxim',
-      'logoPath': 'assets/image/maxim_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Grab Customer',
-      'logoPath': 'assets/image/grab_customer_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'M-Tix',
-      'logoPath': 'assets/image/mtix_logo.png',
-      'backgroundColor': Colors.white,
-    },
-    {
-      'name': 'Mitra Tokopedia',
-      'logoPath': 'assets/image/mitra_tokopedia_logo.jpeg',
-      'backgroundColor': Colors.white,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchEMoneyProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchEMoneyProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 4
+        final filteredData = data.where((item) => item['category_id'] == 4).toList();
+        
+        setState(() {
+          eMoneyProducts = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'backgroundColor': _parseColor(item['backgroundColor']),
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return Colors.white;
+    }
+    
+    try {
+      // Remove # if exists
+      String hexColor = colorString.replaceAll('#', '');
+      
+      // Add FF for full opacity if not present
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      return Colors.white;
+    }
+  }
+
+  Widget _buildImage(String imagePath) {
+    // Cek apakah path adalah URL atau local asset
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Jika URL, gunakan Image.network
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet,
+              color: Colors.grey[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      // Jika local asset, gunakan Image.asset
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet,
+              color: Colors.grey[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
@@ -188,38 +242,70 @@ class _UangElektronikPageState extends State<UangElektronikPage> {
 
           // Product List
           Expanded(
-            child: filteredProducts.isEmpty
+            child: isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Uang elektronik tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: ListView.separated(
-                      itemCount: filteredProducts.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _buildEMoneyCard(filteredProducts[index]);
-                      },
-                    ),
-                  ),
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchEMoneyProducts,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredProducts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Uang elektronik tidak ditemukan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: ListView.separated(
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildEMoneyCard(filteredProducts[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
@@ -235,6 +321,7 @@ class _UangElektronikPageState extends State<UangElektronikPage> {
             builder: (context) => EMoneyTopUpPage(
               providerName: product['name'],
               providerLogoPath: product['logoPath'],
+              buyerSkuCode: product['buyerSkuCode'], // Tambahkan parameter ini
             ),
           ),
         );
@@ -266,28 +353,7 @@ class _UangElektronikPageState extends State<UangElektronikPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  product['logoPath'],
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Fallback if image is not found
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.account_balance_wallet,
-                        color: Colors.grey[600],
-                        size: 24,
-                      ),
-                    );
-                  },
-                ),
+                child: _buildImage(product['logoPath']),
               ),
             ),
             const SizedBox(width: 16),

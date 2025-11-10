@@ -1057,6 +1057,7 @@ $statusEmoji $statusText
                                   margin: const EdgeInsets.only(top: 13, bottom: 11, left: 20, right: 20),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Nama Produk',
@@ -1065,12 +1066,18 @@ $statusEmoji $statusText
                                           fontSize: 12,
                                         ),
                                       ),
-                                      Text(
-                                        _getProductName(),
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          _getProductName(),
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.right,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
@@ -1351,6 +1358,76 @@ $statusEmoji $statusText
                             _buildDivider(),
                             _buildTotalRow('Total Pembayaran', 'Rp ${_getPrice()}'),
                             
+                            // Tampilkan SN untuk semua transaksi sukses yang memiliki SN
+                            if (_isTransactionSuccessful() && _getSerialNumber().isNotEmpty) ...[
+                              _buildDivider(),
+                              Container(
+                                margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE8F5E9),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF4CAF50)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.confirmation_number,
+                                          color: Color(0xFF4CAF50),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Kode SN',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF000000),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _getSerialNumber(),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFF000000),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        GestureDetector(
+                                          onTap: () => _copyToClipboard(context, _getSerialNumber()),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF4CAF50),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Icon(
+                                              Icons.copy,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            
                             if (_isPLNProduct() && _isTransactionSuccessful() && _extractPLNToken().isNotEmpty) ...[
                               _buildDivider(),
                               Container(
@@ -1515,8 +1592,10 @@ $statusEmoji $statusText
       margin: const EdgeInsets.only(bottom: 15, left: 8, right: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -1525,7 +1604,9 @@ $statusEmoji $statusText
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
+            flex: 3,
             child: Text(
               value,
               style: TextStyle(
@@ -1534,6 +1615,8 @@ $statusEmoji $statusText
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.right,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

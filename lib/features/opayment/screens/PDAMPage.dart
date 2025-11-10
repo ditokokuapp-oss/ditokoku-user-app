@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'PascabayarTopUpPage.dart';
 
 class PDAMPage extends StatefulWidget {
@@ -11,312 +13,154 @@ class PDAMPage extends StatefulWidget {
 class _PDAMPageState extends State<PDAMPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> pdamProducts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  // Data untuk produk PDAM
-  final List<Map<String, dynamic>> pdamProducts = [
-    {
-      'name': 'PDAM DKI Jakarta',
-      'description': 'Bayar tagihan air PDAM Jakarta',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_jakarta',
-    },
-    {
-      'name': 'PDAM Banten',
-      'description': 'Bayar tagihan air PDAM Banten',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_banten',
-    },
-    {
-      'name': 'PDAM Jawa Barat',
-      'description': 'Bayar tagihan air PDAM Jawa Barat',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_jabar',
-    },
-    {
-      'name': 'PDAM Jawa Tengah',
-      'description': 'Bayar tagihan air PDAM Jawa Tengah',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_jateng',
-    },
-    {
-      'name': 'PDAM DI Yogyakarta',
-      'description': 'Bayar tagihan air PDAM Yogyakarta',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_yogyakarta',
-    },
-    {
-      'name': 'PDAM Jawa Timur',
-      'description': 'Bayar tagihan air PDAM Jawa Timur',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_jatim',
-    },
-    {
-      'name': 'PDAM Bali',
-      'description': 'Bayar tagihan air PDAM Bali',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_bali',
-    },
-    {
-      'name': 'PDAM Nusa Tenggara Barat',
-      'description': 'Bayar tagihan air PDAM NTB',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_ntb',
-    },
-    {
-      'name': 'PDAM Nusa Tenggara Timur',
-      'description': 'Bayar tagihan air PDAM NTT',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_ntt',
-    },
-    {
-      'name': 'PDAM Aceh',
-      'description': 'Bayar tagihan air PDAM Aceh',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_aceh',
-    },
-    {
-      'name': 'PDAM Sumatera Utara',
-      'description': 'Bayar tagihan air PDAM Sumut',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sumut',
-    },
-    {
-      'name': 'PDAM Sumatera Barat',
-      'description': 'Bayar tagihan air PDAM Sumbar',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sumbar',
-    },
-    {
-      'name': 'PDAM Riau',
-      'description': 'Bayar tagihan air PDAM Riau',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_riau',
-    },
-    {
-      'name': 'PDAM Kepulauan Riau',
-      'description': 'Bayar tagihan air PDAM Kepri',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kepri',
-    },
-    {
-      'name': 'PDAM Jambi',
-      'description': 'Bayar tagihan air PDAM Jambi',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_jambi',
-    },
-    {
-      'name': 'PDAM Bengkulu',
-      'description': 'Bayar tagihan air PDAM Bengkulu',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_bengkulu',
-    },
-    {
-      'name': 'PDAM Sumatera Selatan',
-      'description': 'Bayar tagihan air PDAM Sumsel',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sumsel',
-    },
-    {
-      'name': 'PDAM Bangka Belitung',
-      'description': 'Bayar tagihan air PDAM Babel',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_babel',
-    },
-    {
-      'name': 'PDAM Lampung',
-      'description': 'Bayar tagihan air PDAM Lampung',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_lampung',
-    },
-    {
-      'name': 'PDAM Kalimantan Barat',
-      'description': 'Bayar tagihan air PDAM Kalbar',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kalbar',
-    },
-    {
-      'name': 'PDAM Kalimantan Tengah',
-      'description': 'Bayar tagihan air PDAM Kalteng',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kalteng',
-    },
-    {
-      'name': 'PDAM Kalimantan Selatan',
-      'description': 'Bayar tagihan air PDAM Kalsel',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kalsel',
-    },
-    {
-      'name': 'PDAM Kalimantan Timur',
-      'description': 'Bayar tagihan air PDAM Kaltim',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kaltim',
-    },
-    {
-      'name': 'PDAM Kalimantan Utara',
-      'description': 'Bayar tagihan air PDAM Kaltara',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_kaltara',
-    },
-    {
-      'name': 'PDAM Sulawesi Utara',
-      'description': 'Bayar tagihan air PDAM Sulut',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sulut',
-    },
-    {
-      'name': 'PDAM Sulawesi Tengah',
-      'description': 'Bayar tagihan air PDAM Sulteng',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sulteng',
-    },
-    {
-      'name': 'PDAM Sulawesi Selatan',
-      'description': 'Bayar tagihan air PDAM Sulsel',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sulsel',
-    },
-    {
-      'name': 'PDAM Sulawesi Tenggara',
-      'description': 'Bayar tagihan air PDAM Sultra',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sultra',
-    },
-    {
-      'name': 'PDAM Gorontalo',
-      'description': 'Bayar tagihan air PDAM Gorontalo',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_gorontalo',
-    },
-    {
-      'name': 'PDAM Sulawesi Barat',
-      'description': 'Bayar tagihan air PDAM Sulbar',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_sulbar',
-    },
-    {
-      'name': 'PDAM Maluku',
-      'description': 'Bayar tagihan air PDAM Maluku',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_maluku',
-    },
-    {
-      'name': 'PDAM Maluku Utara',
-      'description': 'Bayar tagihan air PDAM Malut',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_malut',
-    },
-    {
-      'name': 'PDAM Papua',
-      'description': 'Bayar tagihan air PDAM Papua',
-      'logoPath': 'assets/image/pdam_logo.png',
-      'backgroundColor': Colors.white,
-      'iconColor': Colors.blue[600],
-      'icon': Icons.water_drop,
-      'buyerSkuCode': 'pdam_papua',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchPDAMProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchPDAMProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.ditokoku.id/api/newproductsppob'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        // Filter hanya yang category_id = 5
+        final filteredData = data.where((item) => item['category_id'] == 5).toList();
+        
+        setState(() {
+          pdamProducts = filteredData.map<Map<String, dynamic>>((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'description': item['description'],
+              'logoPath': item['logo_uri'],
+              'buyerSkuCode': item['buyerSkuCode'],
+              'backgroundColor': _parseColor(item['backgroundColor']),
+              'iconColor': Colors.blue[600],
+              'icon': Icons.water_drop,
+              'category_name': item['category_name'],
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Gagal memuat data produk';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Terjadi kesalahan: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return Colors.white;
+    }
+    
+    try {
+      // Remove # if exists
+      String hexColor = colorString.replaceAll('#', '');
+      
+      // Add FF for full opacity if not present
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      return Colors.white;
+    }
+  }
+
+  Widget _buildImage(String imagePath) {
+    // Cek apakah path adalah URL atau local asset
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Jika URL, gunakan Image.network
+      return Image.network(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.water_drop,
+              color: Colors.blue[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    } else {
+      // Jika local asset, gunakan Image.asset
+      return Image.asset(
+        imagePath,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.water_drop,
+              color: Colors.blue[600],
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
@@ -401,38 +245,70 @@ class _PDAMPageState extends State<PDAMPage> {
 
           // Product List
           Expanded(
-            child: filteredProducts.isEmpty
+            child: isLoading
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'PDAM tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: ListView.separated(
-                      itemCount: filteredProducts.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _buildPDAMCard(filteredProducts[index]);
-                      },
-                    ),
-                  ),
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchPDAMProducts,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredProducts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'PDAM tidak ditemukan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: ListView.separated(
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                return _buildPDAMCard(filteredProducts[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
@@ -473,7 +349,7 @@ class _PDAMPageState extends State<PDAMPage> {
         ),
         child: Row(
           children: [
-            // Logo container with icon overlay
+            // Logo container
             Container(
               width: 50,
               height: 50,
@@ -481,34 +357,9 @@ class _PDAMPageState extends State<PDAMPage> {
                 color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Stack(
-                children: [
-                  // PDAM Logo
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      product['logoPath'],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.water_drop,
-                            color: product['iconColor'],
-                            size: 24,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _buildImage(product['logoPath']),
               ),
             ),
             const SizedBox(width: 16),

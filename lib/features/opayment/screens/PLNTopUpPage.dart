@@ -6,6 +6,7 @@ import 'package:sixam_mart/util/app_constants.dart';
 import 'package:sixam_mart/helper/auth_helper.dart';
 import 'package:sixam_mart/features/profile/controllers/profile_controller.dart';
 import 'package:get/get.dart';
+import 'DaftarAgenPage.dart';
 
 import 'PaymentDetailPage.dart';
 
@@ -33,6 +34,7 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
   bool isLoading = false;
   bool isCheckingCustomer = false;
   Map<String, dynamic>? customerInfo;
+  bool sortByLowestPrice = false;
   
   bool isAgen = false;
   bool isLoadingAgen = true;
@@ -152,6 +154,10 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
             String brandName = product['brand_name'].toString().toUpperCase();
             return brandName == 'PLN';
           }).toList();
+          
+          if (sortByLowestPrice) {
+            _sortProductsByPrice();
+          }
         });
       }
     } catch (e) {
@@ -168,6 +174,25 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
     }
   }
 
+  void _sortProductsByPrice() {
+    products.sort((a, b) {
+      double priceA = double.tryParse(isAgen ? (a['price'] ?? '0') : (a['priceTierTwo'] ?? a['price'] ?? '0')) ?? 0;
+      double priceB = double.tryParse(isAgen ? (b['price'] ?? '0') : (b['priceTierTwo'] ?? b['price'] ?? '0')) ?? 0;
+      return priceA.compareTo(priceB);
+    });
+  }
+
+  void _togglePriceFilter() {
+    setState(() {
+      sortByLowestPrice = !sortByLowestPrice;
+      if (sortByLowestPrice) {
+        _sortProductsByPrice();
+      } else {
+        _fetchProducts();
+      }
+    });
+  }
+
   Future<void> _checkCustomer() async {
     if (_idController.text.isEmpty) return;
 
@@ -177,21 +202,54 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      
-      setState(() {
-        customerInfo = {
-          'name': 'John Doe',
-          'address': 'Jl. Contoh No. 123, Jakarta',
-          'tariff': 'R1M/900VA',
+      final response = await http.post(
+        Uri.parse('https://api.ditokoku.id/api/pln/inquiry'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
           'customer_id': _idController.text,
-        };
-      });
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['status'] == true && data['data'] != null) {
+          setState(() {
+            customerInfo = {
+              'name': data['data']['name'] ?? data['data']['customer_name'] ?? 'Tidak tersedia',
+              'address': data['data']['address'] ?? data['data']['customer_address'] ?? 'Tidak tersedia',
+              'tariff': data['data']['tariff'] ?? data['data']['power'] ?? 'Tidak tersedia',
+              'customer_id': _idController.text,
+            };
+          });
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(data['message'] ?? 'Data pelanggan tidak ditemukan'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal memeriksa data pelanggan'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } catch (e) {
       print('Error checking customer: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking customer: $e')),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -252,26 +310,37 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  child: Center(
-                    child: Image.asset(
-                      widget.logoPath,
-                      width: 101,
-                      height: 101,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.flash_on,
-                          size: 60,
-                          color: Colors.grey,
-                        );
-                      },
+                // Filter Harga Terendah
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: _togglePriceFilter,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Harga Terendah',
+                          style: TextStyle(
+                            color: sortByLowestPrice 
+                              ? const Color(0xFF2F318B) 
+                              : Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.tune,
+                          size: 16,
+                          color: sortByLowestPrice 
+                            ? const Color(0xFF2F318B) 
+                            : Colors.black,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
                 
                 Align(
                   alignment: Alignment.centerLeft,
@@ -435,14 +504,14 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
           Expanded(
             child: isLoading 
               ? const Center(child: CircularProgressIndicator())
-              : _buildProductGrid(),
+              : _buildProductList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductGrid() {
+  Widget _buildProductList() {
     if (products.isEmpty) {
       return Center(
         child: Column(
@@ -466,14 +535,8 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
       );
     }
 
-    return GridView.builder(
+    return ListView.builder(
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
@@ -516,52 +579,52 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            height: 80, // ✅ Set fixed height 80
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.15),
+                  spreadRadius: 0,
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              border: Border.all(
+                color: const Color(0x332F318B),
+                width: 1,
+              ),
             ),
-          ],
-          border: Border.all(
-            color: const Color(0x662F318B),
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
+                  // Logo Provider
                   Container(
-                    width: 32,
-                    height: 32,
-                    margin: const EdgeInsets.only(right: 8),
+                    width: 40,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 0),
                     child: Image.asset(
                       widget.logoPath,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 32,
-                          height: 32,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: serviceColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Icon(
                               Icons.flash_on,
-                              size: 12,
+                              size: 20,
                               color: serviceColor,
                             ),
                           ),
@@ -569,95 +632,177 @@ class _PLNTopUpPageState extends State<PLNTopUpPage> {
                       },
                     ),
                   ),
-                  Text(
-                    'PLN',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: serviceColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              Text(
-                product['product_name'] ?? '',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              
-              if (nominalPoint.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  nominalPoint,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.orange,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              
-              const SizedBox(height: 12),
-              
-              if (isAgen) ...[
-                Text(
-                  _formatPrice(product['price'] ?? '0'),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: serviceColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ] else ...[
-                Column(
-                  children: [
-                    Text(
-                      _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                  
+                  // Product Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Harga Agen Platinum ',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
-                          ),
-                        ),
                         Text(
-                          _formatPrice(product['price'] ?? '0'),
+                          product['product_name'] ?? '',
                           style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w300,
+                            color: Colors.black,
+                          ),
+                          maxLines: 2, // ✅ Allow 2 lines
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isAgen 
+                            ? _formatPrice(product['price'] ?? '0')
+                            : _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ],
+                  ),
+                  
+                  // Divider
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 3),
+                    color: Colors.grey[300],
+                  ),
+                  
+                  // Poin
+                  if (nominalPoint.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Text(
+                        nominalPoint,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFFB800),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  
+                  // Divider
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.only(left: 3, right: 5),
+                    color: Colors.grey[300],
+                  ),
+                  
+                  // Harga Agen Platinum dengan Text untuk Agen
+                  if (isAgen)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Text(
+                        'Anda mendapatkan harga\nagen platinum',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Text "Harga Agen Platinum" di kanan
+                          const Text(
+                            'Harga Agen Platinum',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFFAFAFB2),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Harga dan Icon dalam 1 baris
+                          Row(
+                            children: [
+                              Text(
+                                _formatPrice(product['price'] ?? '0'),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFAFAFB2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const DaftarAgenPage(),
+                                    ),
+                                  );
+                                },
+                                child: Image.asset(
+                                  'assets/image/verifiedblue.png',
+                                  width: 18,
+                                  height: 18,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2F318B),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF2F318B).withOpacity(0.3),
+                                            spreadRadius: 1,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
+          
+          // Text info di bawah card
+          if (!isAgen)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8, right: 4),
+              child: Text(
+                '*Klik di icon centang biru untuk daftar agen platinum',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.black,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

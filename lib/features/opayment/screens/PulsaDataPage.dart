@@ -8,6 +8,7 @@ import 'package:sixam_mart/util/app_constants.dart';
 import 'package:sixam_mart/helper/auth_helper.dart';
 import 'package:sixam_mart/features/profile/controllers/profile_controller.dart';
 import 'package:get/get.dart';
+import 'DaftarAgenPage.dart';
 
 import 'PaymentDetailPage.dart';
 
@@ -72,7 +73,6 @@ class _ContactPickerDialogState extends State<_ContactPickerDialog> {
         height: 500,
         child: Column(
           children: [
-            // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: TextField(
@@ -99,7 +99,6 @@ class _ContactPickerDialogState extends State<_ContactPickerDialog> {
             ),
             const SizedBox(height: 16),
             
-            // Contact count
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Align(
@@ -115,7 +114,6 @@ class _ContactPickerDialogState extends State<_ContactPickerDialog> {
             ),
             const SizedBox(height: 8),
             
-            // Contact list
             Expanded(
               child: _filteredContacts.isEmpty
                   ? Center(
@@ -201,12 +199,11 @@ class _PulsaDataPageState extends State<PulsaDataPage> with TickerProviderStateM
   List<dynamic> pulsaProducts = [];
   List<dynamic> dataProducts = [];
   bool isLoading = false;
+  bool sortByLowestPrice = false;
   
-  // Variabel untuk status agen
   bool isAgen = false;
   bool isLoadingAgen = true;
 
-  // Provider detection mapping
   final Map<String, List<String>> providerPrefixes = {
     'TELKOMSEL': ['0811', '0812', '0813', '0821', '0822', '0823', '0851', '0852', '0853'],
     'INDOSAT': ['0814', '0815', '0816', '0855', '0856', '0857', '0858', '0895', '0896', '0897', '0898', '0899'],
@@ -215,7 +212,6 @@ class _PulsaDataPageState extends State<PulsaDataPage> with TickerProviderStateM
     'TRI': ['0895', '0896', '0897', '0898', '0899'],
   };
 
-  // Provider info with images and initials
   final Map<String, Map<String, String>> providerInfo = {
     'TELKOMSEL': {
       'image': 'assets/image/telkomsel_logo.png',
@@ -381,6 +377,10 @@ class _PulsaDataPageState extends State<PulsaDataPage> with TickerProviderStateM
           dataProducts = products.where((product) => 
             product['category_name'].toString().toLowerCase().contains('data')
           ).toList();
+          
+          if (sortByLowestPrice) {
+            _sortProductsByPrice();
+          }
         });
       }
     } catch (e) {
@@ -397,87 +397,120 @@ class _PulsaDataPageState extends State<PulsaDataPage> with TickerProviderStateM
     }
   }
 
-Future<void> _pickContact() async {
-  try {
-    final PermissionStatus permissionStatus = await Permission.contacts.status;
+  void _sortProductsByPrice() {
+    pulsaProducts.sort((a, b) {
+      double priceA = double.tryParse(isAgen ? (a['price'] ?? '0') : (a['priceTierTwo'] ?? a['price'] ?? '0')) ?? 0;
+      double priceB = double.tryParse(isAgen ? (b['price'] ?? '0') : (b['priceTierTwo'] ?? b['price'] ?? '0')) ?? 0;
+      return priceA.compareTo(priceB);
+    });
     
-    if (permissionStatus.isGranted) {
-      final List<Contact> contacts = await FlutterContacts.getContacts(
-        withProperties: true,
-        withPhoto: false,
-      );
+    dataProducts.sort((a, b) {
+      double priceA = double.tryParse(isAgen ? (a['price'] ?? '0') : (a['priceTierTwo'] ?? a['price'] ?? '0')) ?? 0;
+      double priceB = double.tryParse(isAgen ? (b['price'] ?? '0') : (b['priceTierTwo'] ?? b['price'] ?? '0')) ?? 0;
+      return priceA.compareTo(priceB);
+    });
+  }
 
-      if (contacts.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada kontak ditemukan')),
-          );
-        }
-        return;
-      }
-
-      final Contact? selectedContact = await showDialog<Contact>(
-        context: context,
-        builder: (BuildContext context) {
-          return _ContactPickerDialog(contacts: contacts);
-        },
-      );
-
-      if (selectedContact != null && selectedContact.phones.isNotEmpty) {
-        String phoneNumber = selectedContact.phones.first.number;
-        
-        phoneNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-        
-        if (phoneNumber.startsWith('+62')) {
-          phoneNumber = '0${phoneNumber.substring(3)}';
-        } else if (phoneNumber.startsWith('62')) {
-          phoneNumber = '0${phoneNumber.substring(2)}';
-        }
-        
-        setState(() {
-          _phoneController.text = phoneNumber;
-        });
-        
-        _detectProvider();
+  void _togglePriceFilter() {
+    setState(() {
+      sortByLowestPrice = !sortByLowestPrice;
+      if (sortByLowestPrice) {
+        _sortProductsByPrice();
+      } else {
         _fetchProducts();
       }
-    } else {
-      final PermissionStatus newStatus = await Permission.contacts.request();
+    });
+  }
+
+  void _navigateToRegisterAgen() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fitur pendaftaran Agen Platinum akan segera tersedia'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _pickContact() async {
+    try {
+      final PermissionStatus permissionStatus = await Permission.contacts.status;
       
-      if (newStatus.isGranted) {
-        _pickContact();
-      } else if (newStatus.isPermanentlyDenied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Silakan berikan izin akses kontak di pengaturan aplikasi'),
-              action: SnackBarAction(
-                label: 'Pengaturan',
-                onPressed: openAppSettings,
-              ),
-            ),
-          );
+      if (permissionStatus.isGranted) {
+        final List<Contact> contacts = await FlutterContacts.getContacts(
+          withProperties: true,
+          withPhoto: false,
+        );
+
+        if (contacts.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tidak ada kontak ditemukan')),
+            );
+          }
+          return;
+        }
+
+        final Contact? selectedContact = await showDialog<Contact>(
+          context: context,
+          builder: (BuildContext context) {
+            return _ContactPickerDialog(contacts: contacts);
+          },
+        );
+
+        if (selectedContact != null && selectedContact.phones.isNotEmpty) {
+          String phoneNumber = selectedContact.phones.first.number;
+          
+          phoneNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+          
+          if (phoneNumber.startsWith('+62')) {
+            phoneNumber = '0${phoneNumber.substring(3)}';
+          } else if (phoneNumber.startsWith('62')) {
+            phoneNumber = '0${phoneNumber.substring(2)}';
+          }
+          
+          setState(() {
+            _phoneController.text = phoneNumber;
+          });
+          
+          _detectProvider();
+          _fetchProducts();
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Izin akses kontak diperlukan untuk fitur ini'),
-            ),
-          );
+        final PermissionStatus newStatus = await Permission.contacts.request();
+        
+        if (newStatus.isGranted) {
+          _pickContact();
+        } else if (newStatus.isPermanentlyDenied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Silakan berikan izin akses kontak di pengaturan aplikasi'),
+                action: SnackBarAction(
+                  label: 'Pengaturan',
+                  onPressed: openAppSettings,
+                ),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Izin akses kontak diperlukan untuk fitur ini'),
+              ),
+            );
+          }
         }
       }
-    }
-  } catch (e) {
-    print('Error picking contact: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error memilih kontak: $e')),
-      );
+    } catch (e) {
+      print('Error picking contact: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error memilih kontak: $e')),
+        );
+      }
     }
   }
-}
-
 
   String _formatPrice(String price) {
     double priceDouble = double.tryParse(price) ?? 0;
@@ -551,26 +584,37 @@ Future<void> _pickContact() async {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  child: Center(
-                    child: Image.asset(
-                      'assets/image/mobiledatanew.png',
-                      width: 101,
-                      height: 101,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.smartphone,
-                          size: 60,
-                          color: Colors.grey,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
+               
+               Align(
+  alignment: Alignment.centerRight,
+  child: GestureDetector(
+    onTap: _togglePriceFilter,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Harga Terendah',
+          style: TextStyle(
+            color: sortByLowestPrice 
+              ? const Color(0xFF2F318B) 
+              : Colors.black,
+            fontSize: 12,
+            fontWeight: FontWeight.w300,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Icon(
+          Icons.tune,
+          size: 16,
+          color: sortByLowestPrice 
+            ? const Color(0xFF2F318B) 
+            : Colors.black,
+        ),
+      ],
+    ),
+  ),
+),
+                const SizedBox(height: 10),
                 
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -698,19 +742,25 @@ Future<void> _pickContact() async {
           if (_isPhoneNumberValid()) ...[
             Container(
               color: Colors.white,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: Colors.blue[600],
-                unselectedLabelColor: Colors.grey[600],
-                indicatorColor: Colors.blue[600],
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-                tabs: const [
-                  Tab(text: 'Pulsa'),
-                  Tab(text: 'Data'),
+              child: Column(
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFF2F318B),
+                    unselectedLabelColor: Colors.grey[600],
+                    indicatorColor: const Color(0xFF2F318B),
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Pulsa'),
+                      Tab(text: 'Data'),
+                    ],
+                  ),
+                  
+                
                 ],
               ),
             ),
@@ -759,49 +809,6 @@ Future<void> _pickContact() async {
     );
   }
 
-  Widget _buildProductGrid(List<dynamic> productList) {
-    if (productList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              selectedProvider.isNotEmpty 
-                ? 'Tidak ada produk tersedia untuk $selectedProvider'
-                : 'Tidak ada produk tersedia',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: productList.length,
-      itemBuilder: (context, index) {
-        final product = productList[index];
-        return _buildProductCard(product);
-      },
-    );
-  }
-
 Widget _buildProductCard(dynamic product) {
   String productName = product['product_name'] ?? '';
   String categoryName = product['category_name']?.toString().toLowerCase() ?? '';
@@ -809,12 +816,10 @@ Widget _buildProductCard(dynamic product) {
   String unit = '';
   bool isDataProduct = categoryName.contains('data');
   
-  // Jika produk Data, tampilkan semua product_name
   if (isDataProduct) {
     mainValue = productName;
     unit = '';
   } else {
-    // Untuk Pulsa, lakukan parsing seperti biasa
     RegExp regExp = RegExp(r'(\d+(?:\.\d+)?)\s*(GB|MB|Poin|Point)?', caseSensitive: false);
     Match? match = regExp.firstMatch(productName);
     
@@ -822,7 +827,6 @@ Widget _buildProductCard(dynamic product) {
       mainValue = match.group(1) ?? '';
       unit = match.group(2)?.toUpperCase() ?? '';
       
-      // Handle conversion for MB to GB if needed
       if (mainValue.isNotEmpty && unit == 'MB') {
         double? numValue = double.tryParse(mainValue);
         if (numValue != null && numValue >= 1000) {
@@ -844,9 +848,6 @@ Widget _buildProductCard(dynamic product) {
       nominalPoint = '${product['nominal_point']} Poin';
     }
   }
-  
-  Color unitColor = Colors.orange;
-  String unitText = unit;
 
   return GestureDetector(
     onTap: () {
@@ -862,56 +863,54 @@ Widget _buildProductCard(dynamic product) {
         ),
       );
     },
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Container(
+          height: 80, // ✅ Set fixed height 80
+          margin: const EdgeInsets.only(bottom: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.15),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: const Color(0x332F318B),
+              width: 1,
+            ),
           ),
-        ],
-        border: Border.all(
-          color: const Color(0x662F318B),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (selectedProvider.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Logo Provider
+                if (selectedProvider.isNotEmpty)
                   Container(
-                    width: 32,
-                    height: 32,
-                    margin: const EdgeInsets.only(right: 8),
+                    width: 40,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 0),
                     child: Image.asset(
                       providerInfo[selectedProvider]!['image']!,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 32,
-                          height: 32,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            color: _getProviderColor(selectedProvider)
-                                .withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            color: _getProviderColor(selectedProvider).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
-                              providerInfo[selectedProvider]!['initial']!
-                                  .substring(0, 1),
+                              providerInfo[selectedProvider]!['initial']!.substring(0, 1),
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: _getProviderColor(selectedProvider),
                               ),
@@ -921,134 +920,215 @@ Widget _buildProductCard(dynamic product) {
                       },
                     ),
                   ),
-                  Text(
-                    selectedProvider,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _getProviderColor(selectedProvider),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            
-            // Display product name/value
-            if (isDataProduct) ...[
-              // Untuk Data: tampilkan full product name dengan font lebih kecil
-              Text(
-                mainValue,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ] else ...[
-              // Untuk Pulsa: tampilkan nilai dengan unit
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    mainValue,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  if (unitText.isNotEmpty) ...[
-                    const SizedBox(width: 4),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: Text(
-                        unitText,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: unitColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-            
-            if (nominalPoint.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                nominalPoint,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.orange,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            
-            const SizedBox(height: 12),
-            
-            // Price section based on agent status
-            if (isAgen) ...[
-              Text(
-                _formatPrice(product['price'] ?? '0'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: selectedProvider.isNotEmpty
-                      ? _getProviderColor(selectedProvider)
-                      : Colors.red,
-                ),
-              ),
-            ] else ...[
-              Column(
-                children: [
-                  Text(
-                    _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
+                
+                // Product Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Harga Agen Platinum ',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
-                        ),
-                      ),
                       Text(
-                        _formatPrice(product['price'] ?? '0'),
+                        productName,
                         style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.black,
+                        ),
+                        maxLines: 2, // ✅ Allow 2 lines for long product names
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isAgen 
+                          ? _formatPrice(product['price'] ?? '0')
+                          : _formatPrice(product['priceTierTwo'] ?? product['price'] ?? '0'),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
-          ],
+                ),
+                
+                // Divider
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.only(right: 3),
+                  color: Colors.grey[300],
+                ),
+                
+                // Poin
+                if (nominalPoint.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                    child: Text(
+                      nominalPoint,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFFB800),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                
+                // Divider
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.only(left: 3, right: 5),
+                  color: Colors.grey[300],
+                ),
+                
+                // Harga Agen Platinum dengan Text untuk Agen
+                if (isAgen)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Text(
+                      'Anda mendapatkan harga\nagen platinum',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Text "Harga Agen Platinum" di kanan
+                        const Text(
+                          'Harga Agen Platinum',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFFAFAFB2),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Harga dan Icon dalam 1 baris
+                        Row(
+                          children: [
+                            Text(
+                              _formatPrice(product['price'] ?? '0'),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFAFAFB2),
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const DaftarAgenPage(),
+                                  ),
+                                );
+                              },
+                              child: Image.asset(
+                                'assets/image/verifiedblue.png',
+                                width: 18,
+                                height: 18,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 18,
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2F318B),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF2F318B).withOpacity(0.3),
+                                          spreadRadius: 1,
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
-      ),
+        
+        // Text info di bawah card
+        if (!isAgen)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8, right: 4),
+            child: Text(
+              '*Klik di icon centang biru untuk daftar agen platinum',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w300,
+                color: Colors.black,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
     ),
+  );
+}
+
+Widget _buildProductGrid(List<dynamic> productList) {
+  if (productList.isEmpty) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            selectedProvider.isNotEmpty 
+              ? 'Tidak ada produk tersedia untuk $selectedProvider'
+              : 'Tidak ada produk tersedia',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  return ListView.builder(
+    padding: const EdgeInsets.all(20),
+    itemCount: productList.length,
+    itemBuilder: (context, index) {
+      final product = productList[index];
+      return _buildProductCard(product);
+    },
   );
 }
 }

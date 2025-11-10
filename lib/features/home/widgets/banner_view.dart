@@ -9,7 +9,8 @@ import 'package:sixam_mart/features/splash/controllers/splash_controller.dart';
 
 class BannerView extends StatefulWidget {
   final bool isFeatured;
-  const BannerView({super.key, required this.isFeatured});
+  final bool noBorderRadius;
+  const BannerView({super.key, required this.isFeatured, this.noBorderRadius = false});
 
   @override
   State<BannerView> createState() => _BannerViewState();
@@ -17,7 +18,7 @@ class BannerView extends StatefulWidget {
 
 class _BannerViewState extends State<BannerView> {
   int _current = 0;
-Future<List<Map<String, String>>>? _futureBanners;
+  Future<List<Map<String, String>>>? _futureBanners;
 
   @override
   void initState() {
@@ -145,20 +146,24 @@ Future<List<Map<String, String>>>? _futureBanners;
                 return GestureDetector(
                   onTap: () => _launchUrl(link),
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(Dimensions.radiusDefault),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 3))
-                      ],
-                    ),
+                    margin: widget.noBorderRadius 
+                        ? EdgeInsets.zero 
+                        : const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: widget.noBorderRadius 
+                        ? null 
+                        : BoxDecoration(
+                            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 3))
+                            ],
+                          ),
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(Dimensions.radiusDefault),
+                      borderRadius: widget.noBorderRadius 
+                          ? BorderRadius.zero 
+                          : BorderRadius.circular(Dimensions.radiusDefault),
                       child: Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
@@ -192,13 +197,15 @@ Future<List<Map<String, String>>>? _futureBanners;
               },
               options: CarouselOptions(
                 autoPlay: true,
-                enlargeCenterPage: false,
+                enlargeCenterPage: !widget.noBorderRadius,
                 disableCenter: true,
-                viewportFraction: 1,
+                viewportFraction: widget.noBorderRadius ? 1.0 : 0.95,
                 autoPlayInterval: const Duration(seconds: 7),
-                height: GetPlatform.isDesktop
-                    ? 400
-                    : MediaQuery.of(context).size.width / 2.5,
+             height: widget.noBorderRadius
+    ? 190 // 🔥 kalau noBorderRadius true
+    : (GetPlatform.isDesktop
+        ? 400
+        : MediaQuery.of(context).size.width / 2.5),
                 onPageChanged: (index, reason) {
                   setState(() {
                     _current = index;
